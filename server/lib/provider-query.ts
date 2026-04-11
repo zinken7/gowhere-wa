@@ -77,6 +77,14 @@ export async function queryProvidersFromSupabase(
     .eq('type', route)
     .eq('is_active', true)
 
+    console.log('[providers] raw query result', {
+      route,
+      suburb: opts.suburb ?? null,
+      hasError: !!error,
+      errorMessage: error?.message ?? null,
+      rawCount: data?.length ?? 0
+    })
+
   if (error) {
     throw error
   }
@@ -84,7 +92,18 @@ export async function queryProvidersFromSupabase(
   const raw = data ?? []
   const filtered = applySuburbPreference(raw, opts.suburb)
 
+  console.log('[providers] after suburb filter', {
+    route,
+    suburb: opts.suburb ?? null,
+    rawCount: raw.length,
+    filteredCount: filtered.length
+  })
+
   let rows = filtered.map(mapRow).filter((r): r is ProviderListItem => r != null)
+
+  console.log('[providers] after mapRow', {
+    mappedCount: rows.length
+  })
 
   const lat = opts.lat
   const lng = opts.lng
@@ -99,6 +118,12 @@ export async function queryProvidersFromSupabase(
       (a, b) =>
         distanceKm(origin, a) - distanceKm(origin, b)
     )
+
+    console.log('[providers] sorted by distance', {
+      lat,
+      lng,
+      finalCount: rows.length
+    })
   }
 
   return rows
@@ -116,22 +141,47 @@ export async function getProvidersNearby(
   route: CareRoute,
   opts: { lat?: number, lng?: number, suburb?: string }
 ): Promise<{ source: 'supabase' | 'static_fallback', items: ProviderListItem[] }> {
-  const fallback = (): { source: 'static_fallback', items: ProviderListItem[] } => ({
-    source: 'static_fallback',
-    items: staticFallback(route)
+  const fallback = (reason: string): { source: 'static_fallback', items: ProviderListItem[] } => {
+    console.log('[providers] fallback', {
+      reason,
+      route,
+      suburb: opts.suburb ?? null,
+      hasClient: !!client
+    })
+    return {
+      source: 'static_fallback',
+      items: staticFallback(route)
+    }
+  }
+
+  console.log('[providers] getProvidersNearby start', {
+    route,
+    suburb: opts.suburb ?? null,
+    lat: opts.lat ?? null,
+    lng: opts.lng ?? null,
+    hasClient: !!client
   })
 
   if (!client) {
-    return fallback()
+    return fallback('no_client')
   }
 
   try {
     const items = await queryProvidersFromSupabase(client, route, opts)
+
+    console.log('[providers] supabase items returned', {
+      count: items.length
+    })
+
     if (items.length === 0) {
-      return fallback()
+      return fallback('empty_items_after_query')
     }
+
     return { source: 'supabase', items }
-  } catch {
-    return fallback()
+  } catch (err) {
+    console.log('[providers] query exception', {
+      message: err instanceof Error ? err.message : String(err)
+    })
+    return fallback('query_exception')
   }
 }
