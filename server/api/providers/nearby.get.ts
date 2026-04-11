@@ -4,6 +4,9 @@ import { getSupabaseAdmin } from '../../lib/supabase'
 
 /** Limits unbounded query strings (DoS / log noise). */
 const MAX_SUBURB_LEN = 120
+/** Default list size for map/list UIs; cap prevents abuse. */
+const DEFAULT_LIMIT = 3
+const MAX_LIMIT = 25
 
 export default defineEventHandler(async (event) => {
   const q = getQuery(event)
@@ -30,6 +33,14 @@ export default defineEventHandler(async (event) => {
 
   const route = parseCareRouteQuery(q.route)
 
+  let limit = DEFAULT_LIMIT
+  if (q.limit !== undefined && q.limit !== '') {
+    const n = Number(q.limit)
+    if (Number.isFinite(n)) {
+      limit = Math.min(Math.max(Math.trunc(n), 1), MAX_LIMIT)
+    }
+  }
+
   let lat: number | undefined
   let lng: number | undefined
   if (hasCoords) {
@@ -53,6 +64,7 @@ export default defineEventHandler(async (event) => {
   return getProvidersNearby(client, route, {
     lat,
     lng,
-    suburb: suburb || undefined
+    suburb: suburb || undefined,
+    limit
   })
 })

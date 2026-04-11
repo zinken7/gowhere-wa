@@ -25,4 +25,6 @@ export interface ProviderItem {
   lat: number
   lng: number
   phone: string | null
+  /** Present when the server ranked by user lat/lng (km). */
+  distanceKm?: number
 }

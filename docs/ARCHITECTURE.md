@@ -1,4 +1,4 @@
-# CarePath WA — Architecture (MVP)
+# GoWhere WA — Architecture (MVP)
 
 **Scope:** Matches `docs/SPEC.md` — care routing only (no diagnosis), deterministic rules, one polished golden path, anonymous demo, English, web + PWA, Supabase + Vercel, Nuxt 4 full-stack.
 
@@ -67,12 +67,22 @@ Dependencies: S1 blocks S2; S2 blocks polishing; S3 can overlap S2 but must comp
 
 ---
 
-## 4. Triage engine (single source of truth)
+## 4. Intake parser (voice-first layer)
+
+- **Location:** `server/lib/intake-parser.ts` (imported by `server/api/intake/analyze.post.ts` and unit tests).
+- **Shared types:** `shared/intake-types.ts` — discriminated union response: `emergency | confirm | follow_up`.
+- **Contract:** Input = free-form text (voice transcript or typed). Output = structured `TriageSignals` (when enough info) or follow-up questions (when missing).
+- **Design:** Deterministic keyword/pattern matching — no LLM dependency. Emergency keywords trigger immediate escalation.
+- **Relationship to triage engine:** The intake parser produces `TriageSignals`; the triage engine consumes them. They are completely decoupled — intake could be replaced with an LLM layer without touching the engine.
+
+---
+
+## 5. Triage engine (single source of truth)
 
 - **Location:** `server/lib/triage-engine.ts` (imported by `server/api/triage/recommend.post.ts` and unit tests).
 - **Shared types & route helpers:** `shared/triage-types.ts`, `shared/care-routes.ts` (canonical `CareRoute` list + `parseCareRouteQuery` for `/api/providers/nearby`).
 - **Helpers:** `server/utils/*` (e.g. red-flags / safety-net) — optional; not all SPEC placeholders exist yet — keep **pure** where possible.
-- **Contract:** Input = structured signals (flags, severity, timing, persona — **no free-text inference** in MVP core). Output = `CareRoute`-style enum + **reason codes** + copy keys for UI.
+- **Contract:** Input = structured signals (flags, severity, timing, persona). Output = `CareRoute`-style enum + **reason codes** + copy keys for UI.
 - **Versioning:** Engine exposes a **rule version** string in API responses for audit and tests.
 
 ---
