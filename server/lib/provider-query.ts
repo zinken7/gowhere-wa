@@ -29,6 +29,26 @@ export function distanceKm(
   return 2 * R * Math.asin(Math.min(1, Math.sqrt(h)))
 }
 
+/**
+ * Suburb search is substring match. Broad queries (e.g. "Perth") may match no row
+ * even when the DB has venues in the metro — then return all `raw` rows for the route.
+ */
+export function applySuburbPreference<T extends { suburb?: string | null, address: string }>(
+  raw: T[],
+  suburbQ: string | undefined
+): T[] {
+  const q = suburbQ?.trim().toLowerCase()
+  if (!q) {
+    return raw
+  }
+  const narrowed = raw.filter((r) => {
+    const sub = (r.suburb ?? '').toLowerCase()
+    const addr = r.address.toLowerCase()
+    return sub.includes(q) || addr.includes(q)
+  })
+  return narrowed.length > 0 ? narrowed : raw
+}
+
 function mapRow(row: Record<string, unknown>): ProviderListItem | null {
   const id = row.id != null ? String(row.id) : ''
   const name = row.name != null ? String(row.name) : ''
@@ -62,15 +82,7 @@ export async function queryProvidersFromSupabase(
   }
 
   const raw = data ?? []
-  const suburbQ = opts.suburb?.trim().toLowerCase()
-  let filtered = raw
-  if (suburbQ) {
-    filtered = raw.filter((r) => {
-      const sub = (r.suburb ?? '').toLowerCase()
-      const addr = r.address.toLowerCase()
-      return sub.includes(suburbQ) || addr.includes(suburbQ)
-    })
-  }
+  const filtered = applySuburbPreference(raw, opts.suburb)
 
   let rows = filtered.map(mapRow).filter((r): r is ProviderListItem => r != null)
 

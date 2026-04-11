@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
+  applySuburbPreference,
   distanceKm,
   getProvidersNearby
 } from '../../server/lib/provider-query'
@@ -16,6 +17,27 @@ describe('distanceKm', () => {
     const d = distanceKm(perth, nedlands)
     expect(d).toBeGreaterThan(2)
     expect(d).toBeLessThan(10)
+  })
+})
+
+describe('applySuburbPreference', () => {
+  it('returns all rows when suburb matches nothing (e.g. Perth vs Northbridge GP seed)', () => {
+    const raw = [
+      { suburb: 'Northbridge', address: 'Lake St, Northbridge WA 6003' },
+      { suburb: 'Subiaco', address: 'Rokeby Rd, Subiaco WA 6008' }
+    ]
+    const out = applySuburbPreference(raw, 'Perth')
+    expect(out).toEqual(raw)
+  })
+
+  it('narrows when substring matches', () => {
+    const raw = [
+      { suburb: 'Northbridge', address: 'Lake St' },
+      { suburb: 'Subiaco', address: 'Rokeby Rd' }
+    ]
+    const out = applySuburbPreference(raw, 'North')
+    expect(out).toHaveLength(1)
+    expect(out[0]!.suburb).toBe('Northbridge')
   })
 })
 

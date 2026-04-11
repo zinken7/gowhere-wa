@@ -95,7 +95,7 @@
 |-------|------|----------|--------|
 | `lat` | number | Conditional | With `lng`, sorts matches by Haversine distance (km) |
 | `lng` | number | Conditional | |
-| `suburb` | string | Conditional | Filters rows whose `suburb` or `address` contains the string (case-insensitive); trimmed; **max 120 chars** (longer input is truncated server-side) |
+| `suburb` | string | Conditional | Preferentially filters rows whose `suburb` or `address` contains the substring (case-insensitive). If **no** row matches, returns all rows for `route` (avoids empty results for broad labels like “Perth” vs seeded suburbs). Trimmed; **max 120 chars** (longer input truncated server-side). |
 | `route` | string | No | Care route: `ed` \| `gp` \| `pharmacy` \| `urgent_care_clinic`; invalid values default to `gp` |
 
 **Success:** `200 OK`
@@ -151,5 +151,6 @@
 
 - **Rate limiting:** Recommended on public `recommend` and `nearby` in production; hackathon MVP may defer.
 - **PII:** Do not log full request bodies containing health signals in production without policy; dev-only logging only.
+- **Vercel / env:** Use the same variable names as `.env.example`. `NUXT_SUPABASE_SERVICE_ROLE_KEY` must be **server-only** (never `NUXT_PUBLIC_*`). See `README.md` (Vercel preview verification).
 
 **Status:** Contract for MVP; evolve with `tasks/plan.md` and engine versioning.

@@ -24,9 +24,9 @@
   - **Acceptance:** No secrets in repo; Vercel: set `NUXT_PUBLIC_SUPABASE_URL` and `NUXT_SUPABASE_SERVICE_ROLE_KEY` to match `.env.example`.  
   - **Verify:** file review; optional README env blurb.
 
-- [ ] **A5** — [Must] **Deployment checkpoint (D1):** Vercel project + preview deploy; health route OK.  
-  - **Acceptance:** Preview URL loads; `/api/health` 200.  
-  - **Verify:** browser + `curl` on preview URL.
+- [x] **A5** — [Must] **Deployment checkpoint (D1):** Vercel preview **verified** on live URL.  
+  - **Evidence (2026-04-11):** `https://visagio-hackathon.vercel.app/` — `GET /` **200**; `GET /api/health` **200** `{"ok":true,"service":"carepath-wa",...}`; `GET /api/providers/nearby?route=gp&suburb=Perth` **200** `"source":"static_fallback"` + demo GP items (Supabase not active or not seeded on preview — acceptable per API). Entry shell renders (CarePath WA + consent + Start / Emergency). **Golden path click-through:** confirm locally in browser once per release; automated agent verified APIs + home only.  
+  - **Ready (repo):** `README.md` — env mapping, Supabase steps, A5 table; `runtimeConfig` + `.env.example` aligned; service role server-only.
 
 ---
 
@@ -131,7 +131,7 @@ Apply in order (last items cut first):
 
 ---
 
-**Status:** Slice 1 **flow UI unblocked**: `pathPrefix: false` in `nuxt.config.ts`. **Data layer:** Supabase `providers` + `households` migrations, `supabase/seed/providers.sql`, `server/lib/supabase.ts`, `server/lib/provider-query.ts`, `/api/providers/nearby` uses DB when configured else static fallback. **Open:** A5 preview deploy, Phase F ship checks; apply migrations on your Supabase project (`supabase db push` or SQL editor).
+**Status:** Slice 1 **flow UI unblocked**: `pathPrefix: false` in `nuxt.config.ts`. **Data layer:** Supabase `providers` + `households` migrations, `supabase/seed/providers.sql`, `server/lib/supabase.ts`, `server/lib/provider-query.ts`, `/api/providers/nearby` uses DB when configured else static fallback. **A5:** Live preview verified — `visagio-hackathon.vercel.app` (see A5 line). **Open:** Phase F ship checks; optional Supabase env + migrations on Vercel for `source: supabase`; **L1** LocationStep if prioritizing geo/suburb UX.
 
 ---
 

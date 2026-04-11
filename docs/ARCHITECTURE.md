@@ -100,6 +100,7 @@ Dependencies: S1 blocks S2; S2 blocks polishing; S3 can overlap S2 but must comp
 | `docs/SPEC.md` | Product scope, boundaries, success criteria |
 | `docs/ARCHITECTURE.md` | This file — structure and slices |
 | `docs/API.md` | HTTP contracts for Nitro routes |
+| `README.md` | Local setup, **Vercel env names**, Supabase migrations, **A5 preview verification** checklist |
 | `tasks/plan.md` | Hackathon plan, order, checkpoints, fallback demo |
 | `tasks/todo.md` | Executable tasks with Must/Should/Could |
 

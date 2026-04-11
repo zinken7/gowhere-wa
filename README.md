@@ -1,66 +1,79 @@
-# Nuxt Starter Template
+# CarePath WA (MVP)
 
-[![Nuxt UI](https://img.shields.io/badge/Made%20with-Nuxt%20UI-00DC82?logo=nuxt&labelColor=020420)](https://ui.nuxt.com)
+Panic-proof **care routing** for Western Australia — deterministic rules, not a diagnosis. Stack: **Nuxt 4**, **Nitro**, **Nuxt UI**, optional **Supabase** for provider data.
 
-Use this template to get started with [Nuxt UI](https://ui.nuxt.com) quickly.
+## Requirements
 
-- [Live demo](https://starter-template.nuxt.dev/)
-- [Documentation](https://ui.nuxt.com/docs/getting-started/installation/nuxt)
+- **Node.js** 22+
+- **pnpm** 10+ (see `packageManager` in `package.json`)
 
-<a href="https://starter-template.nuxt.dev/" target="_blank">
-  <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="https://ui.nuxt.com/assets/templates/nuxt/starter-dark.png">
-    <source media="(prefers-color-scheme: light)" srcset="https://ui.nuxt.com/assets/templates/nuxt/starter-light.png">
-    <img alt="Nuxt Starter Template" src="https://ui.nuxt.com/assets/templates/nuxt/starter-light.png" width="830" height="466">
-  </picture>
-</a>
-
-> The starter template for Vue is on https://github.com/nuxt-ui-templates/starter-vue.
-
-## Quick Start
-
-```bash [Terminal]
-npm create nuxt@latest -- -t ui
-```
-
-## Deploy your own
-
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-name=starter&repository-url=https%3A%2F%2Fgithub.com%2Fnuxt-ui-templates%2Fstarter&demo-image=https%3A%2F%2Fui.nuxt.com%2Fassets%2Ftemplates%2Fnuxt%2Fstarter-dark.png&demo-url=https%3A%2F%2Fstarter-template.nuxt.dev%2F&demo-title=Nuxt%20Starter%20Template&demo-description=A%20minimal%20template%20to%20get%20started%20with%20Nuxt%20UI.)
-
-## Setup
-
-Make sure to install the dependencies:
+## Quick start
 
 ```bash
 pnpm install
-```
-
-**Supabase (optional):** Copy `.env.example` to `.env` and set `NUXT_PUBLIC_SUPABASE_URL` and `NUXT_SUPABASE_SERVICE_ROLE_KEY` for live provider data. Without them, `GET /api/providers/nearby` uses the built-in static demo list. On Vercel, add the same variables in Project Settings → Environment Variables.
-
-## Development Server
-
-Start the development server on `http://localhost:3000`:
-
-```bash
 pnpm dev
 ```
 
-## Production
-
-Build the application for production:
+Open [http://localhost:3000](http://localhost:3000). Run checks before pushing:
 
 ```bash
-pnpm build
+pnpm lint && pnpm test && pnpm typecheck && pnpm build
 ```
 
-Locally preview production build:
+## Environment variables
 
-```bash
-pnpm preview
-```
+| Name | Scope | Purpose |
+|------|--------|---------|
+| `NUXT_PUBLIC_SUPABASE_URL` | **Public** (embedded in client; safe) | Supabase project URL (`https://xxx.supabase.co`) |
+| `NUXT_SUPABASE_SERVICE_ROLE_KEY` | **Server-only** (Nitro / API routes; never `NUXT_PUBLIC_*`) | Service role key for `server/lib/supabase.ts` — **never commit** |
 
-Check out the [deployment documentation](https://nuxt.com/docs/getting-started/deployment) for more information.
+Nuxt maps these to `runtimeConfig.public.supabaseUrl` and `runtimeConfig.supabaseServiceRoleKey` (see `nuxt.config.ts`). The service role key is **not** exposed to the browser bundle.
 
-## Renovate integration
+Copy `.env.example` to `.env` locally. For Vercel, add the same names under **Project → Settings → Environment Variables** (enable for **Preview** and/or **Production** as needed).
 
-Install [Renovate GitHub app](https://github.com/apps/renovate/installations/select_target) on your repository and you are good to go.
+## Supabase (optional)
+
+1. Create a project (e.g. region **Sydney `ap-southeast-2`** per `docs/SPEC.md` unless you standardise elsewhere).
+2. Run SQL in order: `supabase/migrations/001_providers.sql`, `002_households.sql`.
+3. Seed demo rows: `supabase/seed/providers.sql`.
+
+If URL or service key is missing or the query fails, `GET /api/providers/nearby` returns **`static_fallback`** demo data so the app still works.
+
+## Deploy on Vercel
+
+1. Push this repo to GitHub (or GitLab / Bitbucket) and **Import** it in [Vercel](https://vercel.com).
+2. **Framework preset:** Nuxt (auto-detected) — build command `pnpm build` / output handled by Nitro.
+3. Set **`NUXT_PUBLIC_SUPABASE_URL`** and **`NUXT_SUPABASE_SERVICE_ROLE_KEY`** for the environments you use (at minimum **Preview** for PR previews).
+4. Create a **preview deployment** (open a PR or use **Deployments → Redeploy**).
+
+Do not paste the service role into any `PUBLIC` or client-side variable.
+
+---
+
+## Vercel preview verification (checkpoint **A5**)
+
+Run these against the **preview URL** Vercel assigns (replace `https://YOUR-PREVIEW.vercel.app`).
+
+| # | Check | How |
+|---|--------|-----|
+| 1 | App shell loads | Open `/` — CarePath layout, no blank page. |
+| 2 | Health | `curl -sS "https://YOUR-PREVIEW.vercel.app/api/health"` → HTTP **200**, JSON with `"ok": true`, `"service": "carepath-wa"`. |
+| 3 | Golden path | In browser: consent → persona → category → red flags → severity → **recommendation** with card + list; no dead end. |
+| 4 | Providers with Supabase (env set) | `curl -sS "https://YOUR-PREVIEW.vercel.app/api/providers/nearby?route=gp&suburb=Perth"` → HTTP **200**, JSON `"source": "supabase"` if DB seeded and keys valid; otherwise `"static_fallback"` is acceptable. |
+| 5 | Fallback safe | Temporarily clear **`NUXT_SUPABASE_SERVICE_ROLE_KEY`** on a **test** preview (or use a project without DB): same `curl` → **200** and venues in `items`, `"source": "static_fallback"`. Restore env after. |
+
+**Manual sign-off:** A5 is “done” when rows 1–3 pass on a real preview URL; 4–5 validate Supabase wiring and fallback.
+
+API contract: `docs/API.md`.
+
+## Documentation
+
+| Doc | Purpose |
+|-----|---------|
+| `docs/SPEC.md` | Product scope and boundaries |
+| `docs/ARCHITECTURE.md` | Runtime and slices |
+| `docs/API.md` | HTTP contracts |
+
+## License
+
+See `LICENSE`.

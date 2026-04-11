@@ -14,8 +14,9 @@ export default defineNuxtConfig({
     }
   ],
 
+  /** Disable in production builds to avoid shipping devtools to users. */
   devtools: {
-    enabled: true
+    enabled: process.env.NODE_ENV !== 'production'
   },
 
   css: ['~/assets/css/main.css'],
@@ -33,14 +34,6 @@ export default defineNuxtConfig({
   },
 
   compatibilityDate: '2025-01-15',
-
-  vite: {
-    server: {
-      allowedHosts: [
-        '3b78-130-95-40-98.ngrok-free.app'
-      ]
-    }
-  },
 
   eslint: {
     config: {
