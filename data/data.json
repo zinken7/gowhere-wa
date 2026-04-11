@@ -162,6 +162,42 @@
       "symptoms": ["mild sore throat"],
       "conditions": ["viral throat infection"],
       "triage": "pharmacy"
-    }
+    },
+    {
+  "id": "C023",
+  "symptoms": ["suicidal thoughts", "want to harm myself", "thinking about death"],
+  "conditions": ["suicide risk"],
+  "triage": "ed"
+},
+{
+  "id": "C024",
+  "symptoms": ["panic attack", "severe anxiety", "cannot breathe from anxiety"],
+  "conditions": ["acute anxiety"],
+  "triage": "urgent_care_clinic"
+},
+{
+  "id": "C025",
+  "symptoms": ["depression", "feeling hopeless", "loss of interest", "low mood for weeks"],
+  "conditions": ["depressive disorder"],
+  "triage": "gp"
+},
+{
+  "id": "C026",
+  "symptoms": ["anxiety", "constant worry", "stress"],
+  "conditions": ["general anxiety"],
+  "triage": "gp"
+},
+{
+  "id": "C027",
+  "symptoms": ["trouble sleeping", "insomnia", "mild stress"],
+  "conditions": ["sleep disturbance"],
+  "triage": "pharmacy"
+},
+{
+  "id": "C028",
+  "symptoms": ["feeling overwhelmed", "burnout", "work stress"],
+  "conditions": ["stress"],
+  "triage": "pharmacy"
+}
   ]
 }
