@@ -31,13 +31,6 @@ Nuxt maps these to `runtimeConfig.public.supabaseUrl` and `runtimeConfig.supabas
 
 Copy `.env.example` to `.env` locally. For Vercel, add the same names under **Project → Settings → Environment Variables** (enable for **Preview** and/or **Production** as needed).
 
-### If `/api/providers/nearby` stays `source: "static_fallback"`
-
-1. **Preview vs Production:** Each variable must be enabled for **Preview** if you test PR / branch previews. **Production-only** env vars are **not** available to preview deployments.
-2. **Redeploy:** After changing env vars, run **Redeploy** so new serverless invocations pick them up.
-3. **Deployment commit:** Confirm the active deployment includes the latest `server/lib/supabase.ts` (reads `process.env.NUXT_*` at runtime as well as `useRuntimeConfig()`).
-4. **Database:** Migrations + `supabase/seed/providers.sql` applied in the Supabase project tied to `NUXT_PUBLIC_SUPABASE_URL`.
-
 ## Supabase (optional)
 
 1. Create a project (e.g. region **Sydney `ap-southeast-2`** per `docs/SPEC.md` unless you standardise elsewhere).
