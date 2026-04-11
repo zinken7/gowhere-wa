@@ -61,21 +61,40 @@
 
 - Emergency Contact/ SOS Contact (Name/ Relationship/Phone Number) 
 
-- Medical Background (Medical History/Disabilities or Accessibility Needs/Ongoing Medications/ Mental Health Concerns)
+- Medical Background (Medical History/Disabilities or Accessibility Needs/Ongoing Medications/ Mental Health Concerns) 
 
 - Medicare Information: Private Health Insurance, Medicare Card, Preferred Hospital / GP, Other Relevant Support Information
 
 ### 3. Home page
 #### 3.1. Start check
-#### 3.2. commn senario hook
+
+- get start (me/ someone else)/ term privacy/ emergency call 000
+
+- Age, Sex, (optional) Are you of Aboriginal and/or Torres Strait Islander origin? 
+
+- What is your current location? Enter suburb or postcode
+
+- Health Background? Recent physical injury/ Smoking cigarettes/ History of allergy in myself or my family/ Pregnancy/ Overweight and obesity/ Diagnosed diabetes/ Diagnosed hypertension 
+
+- What are your symptoms? Enter your current symptoms, one at a time./ selected from the list/ make it consice/ user friendly
+
+
 #### 3.3. Emergency button
 
+- Emergency department: Urgent medical attention for a range of illnesses and injuries.
+There can be longer wait times for those with less severe symptoms.
 
-### 4. Questions
-#### 4.1. 3-4 Question (base on the option)/ skip if patients in servere conditions (breathing issue), emotion mode
+
 
 ### 5. Result page
 #### decision non-emergenc -> GP in 24 hours/ emergency
-#### short explanation?
+- What you should do? You need to seek medical care rightaway.To find a suitable healthcare service now, choose from the customised care options below. 
+
+- Emergency department: Urgent medical attention for a range of illnesses and injuries.
+There can be longer wait times for those with less severe symptoms.
+Usually open 24 hours, no fee or appointment needed./ Find a service/ Further reading
+
+- Start a new systom check/ check another symptoms
+
 #### action nearby care (call/ navigate/ list of clinics)
 
