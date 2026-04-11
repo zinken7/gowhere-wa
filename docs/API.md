@@ -50,8 +50,10 @@
 
 ```json
 {
-  "rulesVersion": "string",
+  "rulesVersion": "carepath-wa-1.0.0",
   "route": "ed | gp | pharmacy | urgent_care_clinic",
+  "urgency": "immediate | today | 24_to_48h | routine",
+  "shortReason": "Plain-language explanation of why this care setting fits (not a diagnosis).",
   "reasonCodes": ["string"],
   "ui": {
     "headlineKey": "string",
@@ -60,7 +62,21 @@
 }
 ```
 
-**Client behavior:** Map `reasonCodes` and keys to localized copy on the client; do not show internal rule IDs as medical facts.
+- **`urgency`** — How soon to act (routing hint, not a clinical triage score).
+- **`shortReason`** — Non-diagnostic rationale shown in the UI; safe to display verbatim.
+
+**Client behavior:** Prefer `shortReason` for primary copy; map `reasonCodes` and `ui.*Key` for localization or A/B copy tests. Do not present reason codes as medical facts or diagnoses.
+
+**Error payload shape (typical):**
+
+```json
+{
+  "error": {
+    "code": "CONSENT_REQUIRED",
+    "message": "Consent is required before care routing."
+  }
+}
+```
 
 **Errors:**
 

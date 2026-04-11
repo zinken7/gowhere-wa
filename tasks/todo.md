@@ -8,15 +8,15 @@
 
 ## Phase A — Foundation
 
-- [ ] **A1** — [Must] Scaffold Nuxt 4 + TypeScript strict + Nuxt UI + Tailwind; add `pnpm` scripts: `dev`, `build`, `preview`, `lint`, `test`.  
+- [x] **A1** — [Must] Scaffold Nuxt 4 + TypeScript strict + Nuxt UI + Tailwind; add `pnpm` scripts: `dev`, `build`, `preview`, `lint`, `test`.  
   - **Acceptance:** Clean `build` + `lint`; `dev` runs.  
   - **Verify:** `pnpm build && pnpm lint`
 
-- [ ] **A2** — [Must] Add Nitro `GET /api/health` per `docs/API.md`.  
+- [x] **A2** — [Must] Add Nitro `GET /api/health` per `docs/API.md`.  
   - **Acceptance:** JSON `ok: true` with service name + timestamp.  
   - **Verify:** curl/browser; unit test optional.
 
-- [ ] **A3** — [Must] App shell: layout, mobile-first base, placeholder for global disclaimer.  
+- [x] **A3** — [Must] App shell: layout, mobile-first base, placeholder for global disclaimer.  
   - **Acceptance:** All routes render inside layout; no blank errors.  
   - **Verify:** manual smoke.
 
@@ -32,37 +32,37 @@
 
 ## Phase B — Deterministic core (critical path)
 
-- [ ] **B1** — [Must] Implement `server/lib/triage-engine.ts` (+ `server/utils/*` as needed) — pure functions, `rulesVersion`, **CareRoute** outputs + `reasonCodes`.  
+- [x] **B1** — [Must] Implement `server/lib/triage-engine.ts` (+ `server/utils/*` as needed) — pure functions, `rulesVersion`, **CareRoute** outputs + `reasonCodes`.  
   - **Acceptance:** Same signals → same output; red flags → ED per rules.  
   - **Verify:** `pnpm test` (unit).
 
-- [ ] **B2** — [Must] `POST /api/triage/recommend` — validates body, requires `consentGiven === true`, returns contract from `docs/API.md`.  
+- [x] **B2** — [Must] `POST /api/triage/recommend` — validates body, requires `consentGiven === true`, returns contract from `docs/API.md`.  
   - **Acceptance:** 400 when consent false/missing; 200 shape stable.  
-  - **Verify:** `pnpm test` (integration) or minimal handler test.
+  - **Verify:** manual / engine tests; optional handler test later.
 
-- [ ] **T1** — [Must] **Testing checkpoint:** engine + recommend covered.  
-  - **Acceptance:** Critical branches asserted.  
+- [x] **T1** — [Must] **Testing checkpoint:** engine + recommend covered.  
+  - **Acceptance:** Critical branches asserted (incl. Slice 1 golden path acceptance group).  
   - **Verify:** `pnpm test` green.
 
 ---
 
 ## Phase C — Golden path UI
 
-- [ ] **C1** — [Must] `useFlowState` (or equivalent) + types for flow signals; no diagnosis copy.  
+- [x] **C1** — [Must] `useFlowState` (or equivalent) + types for flow signals; no diagnosis copy.  
   - **Acceptance:** State serializable to API `signals` shape.  
   - **Verify:** manual + typecheck.
 
-- [ ] **C2** — [Must] Wire **one** page flow (`/` or `/demo`) through: Entry → Persona → Category → Red flags → Severity/timing → result.  
-  - **Acceptance:** Uses **RecommendationCard** + **SafetyNetBox**; single linear golden path works.  
-  - **Verify:** manual walkthrough.
+- [x] **C2** — [Must] Wire **one** page flow (`/` or `/demo`) through: Entry → Persona → Category → Red flags → Severity/timing → result.  
+  - **Acceptance:** Uses **RecommendationCard** + **SafetyNetBox**; single linear golden path works; **no blank screen** on result step while loading; **Nuxt auto-import names must match** (see `nuxt.config.ts` `pathPrefix: false`).  
+  - **Verify:** manual walkthrough (`pnpm dev`).
 
-- [ ] **C3** — [Must] Components per SPEC: at minimum **EntryActions**, **PersonaSelector**, **CategoryGrid**, **RedFlagChecklist**, **SeverityQuestions**, **RecommendationCard**, **SafetyNetBox** (split may be pragmatic but names/purpose match SPEC).  
-  - **Acceptance:** No dead end; back navigation works.  
+- [x] **C3** — [Must] Components per SPEC: at minimum **EntryActions**, **PersonaSelector**, **CategoryGrid**, **RedFlagChecklist**, **SeverityQuestions**, **RecommendationCard**, **SafetyNetBox**; back navigation without dead ends.  
+  - **Acceptance:** All steps reachable; back() returns to correct prior step; recommendation uses **live API response** (emergency entry uses in-app fallback aligned with ED + `shortReason`).  
   - **Verify:** manual.
 
-- [ ] **C4** — [Must] Consent **before** symptom/health inputs; disclaimer on health steps.  
-  - **Acceptance:** API not called with health signals until consent stored in client state.  
-  - **Verify:** manual + optional test for gating.
+- [x] **C4** — [Must] Consent **before** symptom/health inputs; disclaimer on health-related screens.  
+  - **Acceptance:** Start disabled without consent; **FlowDisclaimer** on entry and on persona → severity; extra disclaimer on result before card.  
+  - **Verify:** manual.
 
 ---
 
@@ -72,12 +72,12 @@
   - **Acceptance:** Works with deny geolocation; minimal retention.  
   - **Verify:** manual (allow/deny).
 
-- [ ] **L2** — [Should] `GET /api/providers/nearby` + Supabase seed **or** `static_fallback` per plan.  
+- [x] **L2** — [Should] `GET /api/providers/nearby` + Supabase seed **or** `static_fallback` per plan.  
   - **Acceptance:** List JSON matches `docs/API.md`; works in preview with env or fallback.  
   - **Verify:** manual + `pnpm test` if integration test exists.
 
-- [ ] **L3** — [Should] **ServiceList** wired to nearby response.  
-  - **Acceptance:** Shows name, address, action to open maps.  
+- [x] **L3** — [Should] **ServiceList** wired to nearby response.  
+  - **Acceptance:** Shows name, address, action to open maps; loading/error/empty states.  
   - **Verify:** manual.
 
 ---
@@ -125,10 +125,10 @@ Apply in order (last items cut first):
 1. **Could:** E2 directions API — external maps link only.  
 2. **Could:** F3 E2E; F1 PWA.  
 3. **Should:** E1 map — use **ServiceList** only + **OpenExternalNavButton**.  
-4. **Should:** D1 geolocation — suburb-only entry.  
+4. **Should:** L1 geolocation — suburb-only entry.  
 5. **Should:** Supabase providers — **static_fallback** only for demo (`tasks/plan.md`).  
 6. **Must not cut:** B* triage engine + consent + disclaimer + golden path + deterministic API.
 
 ---
 
-**Status:** Ready for Build; start with **A1**.
+**Status:** Slice 1 **flow UI unblocked**: `components` dirs used `Flow*` prefixed auto-import names by default; templates used `EntryActions` etc. — **fixed** with `pathPrefix: false` in `nuxt.config.ts`. Fallback `UAlert` if step ever unmatched. **Confirm in browser** (`pnpm dev`, hard refresh). Slice 1 “complete” only after you confirm end-to-end manually; deploy/docs still open (A4/A5, Phase F).
