@@ -183,7 +183,7 @@ Naming: `PascalCase` components, `camelCase` functions/vars, `kebab-case` routes
 - Obtain **explicit consent** before collecting health or symptom-related data; **minimize** what is stored.
 - Use **RLS** on Supabase tables that hold user or health-related data; allow **delete my data** when accounts exist.
 - **Do not** store long-term raw location history.
-- Do not store more than needed; keep data minimal..
+- Do not store more than needed; keep data minimal.
 - Run tests before merging material changes once the test harness exists.
 
 ### Ask first
@@ -203,7 +203,7 @@ Naming: `PascalCase` components, `camelCase` functions/vars, `kebab-case` routes
 
 Align privacy and consent with Australian expectations and internal legal review. This spec does not replace legal advice.
 
-## Open Questions
+## Decisions
 
 1. **Rule source:** Internal routing rules adapted from public WA Health and Healthdirect-style guidance; not a diagnostic system.
 2. **Languages:** English-only.
