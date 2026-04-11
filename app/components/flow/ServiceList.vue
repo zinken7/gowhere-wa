@@ -22,7 +22,7 @@ const emit = defineEmits<{ retry: [] }>()
     </template>
 
     <div
-      v-if="status === 'loading'"
+      v-if="status === 'loading' || (status === 'idle' && items.length === 0)"
       class="space-y-3"
       aria-busy="true"
     >

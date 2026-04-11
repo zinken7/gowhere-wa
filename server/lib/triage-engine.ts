@@ -1,3 +1,7 @@
+/**
+ * Deterministic care routing only — no database or external calls.
+ * Provider lists are resolved separately (`provider-query` + `/api/providers/nearby`).
+ */
 import { RULES_VERSION } from '../../shared/constants'
 import type {
   CareRoute,

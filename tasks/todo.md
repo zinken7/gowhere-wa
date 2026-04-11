@@ -20,9 +20,9 @@
   - **Acceptance:** All routes render inside layout; no blank errors.  
   - **Verify:** manual smoke.
 
-- [ ] **A4** — [Should] `.env.example` + `runtimeConfig` placeholders for Supabase URL/keys (anon + server only documented).  
-  - **Acceptance:** No secrets in repo; README notes Vercel env mapping.  
-  - **Verify:** grep for keys in git history N/A; file review.
+- [x] **A4** — [Should] `.env.example` + `runtimeConfig` placeholders for Supabase URL + service role (server-only documented).  
+  - **Acceptance:** No secrets in repo; Vercel: set `NUXT_PUBLIC_SUPABASE_URL` and `NUXT_SUPABASE_SERVICE_ROLE_KEY` to match `.env.example`.  
+  - **Verify:** file review; optional README env blurb.
 
 - [ ] **A5** — [Must] **Deployment checkpoint (D1):** Vercel project + preview deploy; health route OK.  
   - **Acceptance:** Preview URL loads; `/api/health` 200.  
@@ -72,9 +72,9 @@
   - **Acceptance:** Works with deny geolocation; minimal retention.  
   - **Verify:** manual (allow/deny).
 
-- [x] **L2** — [Should] `GET /api/providers/nearby` + Supabase seed **or** `static_fallback` per plan.  
-  - **Acceptance:** List JSON matches `docs/API.md`; works in preview with env or fallback.  
-  - **Verify:** manual + `pnpm test` if integration test exists.
+- [x] **L2** — [Should] `GET /api/providers/nearby` + Supabase migrations/seed **and** `static_fallback` when env missing or DB errors.  
+  - **Acceptance:** `source` reflects live DB when configured; deterministic fallback preserves demo.  
+  - **Verify:** `pnpm test` (provider-query unit); manual with/without env.
 
 - [x] **L3** — [Should] **ServiceList** wired to nearby response.  
   - **Acceptance:** Shows name, address, action to open maps; loading/error/empty states.  
@@ -131,4 +131,44 @@ Apply in order (last items cut first):
 
 ---
 
-**Status:** Slice 1 **flow UI unblocked**: `components` dirs used `Flow*` prefixed auto-import names by default; templates used `EntryActions` etc. — **fixed** with `pathPrefix: false` in `nuxt.config.ts`. Fallback `UAlert` if step ever unmatched. **Confirm in browser** (`pnpm dev`, hard refresh). Slice 1 “complete” only after you confirm end-to-end manually; deploy/docs still open (A4/A5, Phase F).
+**Status:** Slice 1 **flow UI unblocked**: `pathPrefix: false` in `nuxt.config.ts`. **Data layer:** Supabase `providers` + `households` migrations, `supabase/seed/providers.sql`, `server/lib/supabase.ts`, `server/lib/provider-query.ts`, `/api/providers/nearby` uses DB when configured else static fallback. **Open:** A5 preview deploy, Phase F ship checks; apply migrations on your Supabase project (`supabase db push` or SQL editor).
+
+---
+
+## Demo readiness review (2026-04-11)
+
+### Bugs found (by severity)
+
+| Severity | Issue | Resolution |
+|----------|--------|------------|
+| **High** | After `POST /api/triage/recommend` succeeded, `useProviders` stayed `idle` until `loadForRoute` ran → **ServiceList** fell through to an empty `<ul>` (no skeleton). | **`prepareForLoad()`** in `useProviders` — clear items + `loading` at start of `loadRecommendationPanel`; **ServiceList** also treats `idle && items.length === 0` as loading. |
+| **High** | **Emergency** entry: step jumped to `recommendation` while `recStatus` was still `idle` → full-panel skeleton hid the ED card until the watch ran. | **`onEmergency`** now calls `prepareForLoad()`, **`setEmergencyEntryResult()`**, then **`goEmergency()`** so the recommendation panel shows ED + provider loading without a pointless full skeleton. |
+
+No **critical**-severity issues identified in this pass.
+
+### Fixes applied (code)
+
+- `app/composables/useProviders.ts` — `prepareForLoad()`; used from `index.vue`.
+- `app/pages/index.vue` — `loadRecommendationPanel` starts with `prepareForLoad()`; emergency handler pre-fills ED result before navigation.
+- `app/components/flow/ServiceList.vue` — loading branch includes `idle` + empty items.
+- `tests/unit/triage-engine.spec.ts` — **golden mild fever** full object snapshot (routing + copy stability for demo).
+
+### Medium / low — not fixed in this pass (track separately)
+
+| Severity | Item |
+|----------|------|
+| **Medium** | **L1** still open: `useProviders` uses fixed `suburb: 'Perth WA'` — no browser geolocation or user suburb field; demo is WA-centric but not location-personalized. |
+| **Medium** | **Mobile viewport** not covered by automated E2E — manual check on real device / DevTools still required (F4). |
+| **Medium** | **`/` prerender** (`routeRules`) — client-side `$fetch` to `/api/*` after hydration is expected; confirm once on Vercel preview (CORS same-origin, Nitro on server). |
+| **Low** | **RecommendationCard** shows raw `reasonCodes` — fine for transparency; may trim for judge-facing demo copy later. |
+| **Low** | **Rate limiting** on public APIs not implemented (noted in `docs/API.md`). |
+| **Low** | **Supabase failure**: server already falls back to `static_fallback`; client rarely sees provider errors unless network/400 — covered by server design. |
+
+### Final verification checklist (run before demo)
+
+- [ ] `pnpm test && pnpm lint && pnpm build` — green  
+- [ ] `pnpm dev` — golden path: Entry (consent) → Persona → Category → Red flags → Severity → result with **RecommendationCard** + **ServiceList**  
+- [ ] **Emergency** from entry — ED card + safety net + provider list without long blank state  
+- [ ] **Mobile** (DevTools or phone): `max-w-lg` flow readable; buttons stack on narrow width  
+- [ ] **Vercel**: `NUXT_PUBLIC_SUPABASE_URL` + `NUXT_SUPABASE_SERVICE_ROLE_KEY` set; `/api/health` 200; optional: `/api/providers/nearby?route=gp&suburb=Perth` returns `source` + items  
+- [ ] **Back** from result through severity/red flags/category/persona to entry — no dead ends  

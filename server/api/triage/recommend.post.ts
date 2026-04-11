@@ -43,7 +43,20 @@ function parseSeverity(s: string | undefined): Severity {
 export default defineEventHandler(async (event) => {
   const body = await readBody<RecommendBody>(event).catch(() => null)
 
-  if (!body?.consentGiven) {
+  if (!body || typeof body !== 'object' || Array.isArray(body)) {
+    throw createError({
+      statusCode: 400,
+      statusMessage: 'Bad Request',
+      data: {
+        error: {
+          code: 'INVALID_BODY',
+          message: 'Request body must be a JSON object.'
+        }
+      }
+    })
+  }
+
+  if (body.consentGiven !== true) {
     throw createError({
       statusCode: 400,
       statusMessage: 'Bad Request',

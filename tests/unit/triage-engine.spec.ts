@@ -113,4 +113,28 @@ describe('Slice 1 golden path acceptance', () => {
     expect(r.urgency).toBe('immediate')
     expect(r.reasonCodes).toContain('RED_FLAGS')
   })
+
+  /** Locks demo API shape + copy for regression (demo script / judges). */
+  it('golden mild fever path: full engine output matches stable snapshot', () => {
+    const r = recommendCare(
+      base({
+        categoryKey: 'fever',
+        severity: 'mild',
+        redFlags: false,
+        afterHours: false
+      })
+    )
+    expect(r).toEqual({
+      rulesVersion: RULES_VERSION,
+      route: 'gp',
+      urgency: 'routine',
+      shortReason:
+        'A GP visit is appropriate when symptoms are mild and stable.',
+      reasonCodes: ['GP_ROUTINE'],
+      ui: {
+        headlineKey: 'recommend.gp.headline',
+        bodyKey: 'recommend.gp.body'
+      }
+    })
+  })
 })

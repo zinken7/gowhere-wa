@@ -70,7 +70,8 @@ Dependencies: S1 blocks S2; S2 blocks polishing; S3 can overlap S2 but must comp
 ## 4. Triage engine (single source of truth)
 
 - **Location:** `server/lib/triage-engine.ts` (imported by `server/api/triage/recommend.post.ts` and unit tests).
-- **Helpers:** `server/utils/red-flags.ts`, `server/utils/safety-net.ts` — keep **pure** where possible.
+- **Shared types & route helpers:** `shared/triage-types.ts`, `shared/care-routes.ts` (canonical `CareRoute` list + `parseCareRouteQuery` for `/api/providers/nearby`).
+- **Helpers:** `server/utils/*` (e.g. red-flags / safety-net) — optional; not all SPEC placeholders exist yet — keep **pure** where possible.
 - **Contract:** Input = structured signals (flags, severity, timing, persona — **no free-text inference** in MVP core). Output = `CareRoute`-style enum + **reason codes** + copy keys for UI.
 - **Versioning:** Engine exposes a **rule version** string in API responses for audit and tests.
 

@@ -1,14 +1,19 @@
-import type { CareRoute } from '../../lib/triage-engine'
-import { filterProvidersForRoute } from '../../lib/static-providers'
+import { parseCareRouteQuery } from '../../../shared/care-routes'
+import { getProvidersNearby } from '../../lib/provider-query'
+import { getSupabaseAdmin } from '../../lib/supabase'
 
-const ROUTES: CareRoute[] = ['ed', 'gp', 'pharmacy', 'urgent_care_clinic']
+/** Limits unbounded query strings (DoS / log noise). */
+const MAX_SUBURB_LEN = 120
 
-export default defineEventHandler((event) => {
+export default defineEventHandler(async (event) => {
   const q = getQuery(event)
-  const routeRaw = typeof q.route === 'string' ? q.route : ''
   const hasCoords
     = q.lat !== undefined && q.lng !== undefined && q.lat !== '' && q.lng !== ''
-  const suburb = typeof q.suburb === 'string' ? q.suburb.trim() : ''
+  const suburbRaw = typeof q.suburb === 'string' ? q.suburb.trim() : ''
+  const suburb
+    = suburbRaw.length > MAX_SUBURB_LEN
+      ? suburbRaw.slice(0, MAX_SUBURB_LEN)
+      : suburbRaw
 
   if (!hasCoords && !suburb) {
     throw createError({
@@ -23,14 +28,31 @@ export default defineEventHandler((event) => {
     })
   }
 
-  const route = (ROUTES as string[]).includes(routeRaw)
-    ? (routeRaw as CareRoute)
-    : 'gp'
+  const route = parseCareRouteQuery(q.route)
 
-  const items = filterProvidersForRoute(route)
-
-  return {
-    source: 'static_fallback' as const,
-    items
+  let lat: number | undefined
+  let lng: number | undefined
+  if (hasCoords) {
+    lat = Number(q.lat)
+    lng = Number(q.lng)
+    if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
+      throw createError({
+        statusCode: 400,
+        statusMessage: 'Bad Request',
+        data: {
+          error: {
+            code: 'INVALID_COORDINATES',
+            message: 'lat and lng must be valid numbers.'
+          }
+        }
+      })
+    }
   }
+
+  const client = getSupabaseAdmin()
+  return getProvidersNearby(client, route, {
+    lat,
+    lng,
+    suburb: suburb || undefined
+  })
 })

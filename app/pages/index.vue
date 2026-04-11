@@ -1,4 +1,18 @@
 <script setup lang="ts">
+import type { FlowStep } from '~/types/flow'
+
+const STEP_BADGE: Partial<Record<FlowStep, string>> = {
+  persona: 'Persona',
+  category: 'Category',
+  redFlags: 'Warning signs',
+  severity: 'Severity',
+  recommendation: 'Result'
+}
+
+function stepBadgeLabel(step: FlowStep): string {
+  return STEP_BADGE[step] ?? 'Result'
+}
+
 const {
   step,
   consentGiven,
@@ -27,6 +41,7 @@ const {
   items: provItems,
   status: provStatus,
   errorMessage: provError,
+  prepareForLoad,
   loadForRoute,
   reset: provReset
 } = useProviders()
@@ -57,7 +72,7 @@ watch(step, (s, prev) => {
 })
 
 async function loadRecommendationPanel() {
-  provReset()
+  prepareForLoad()
   if (entryEmergency.value) {
     setEmergencyEntryResult()
     const r = recResult.value
@@ -86,6 +101,8 @@ function goRedFlags() {
 }
 
 function onEmergency() {
+  prepareForLoad()
+  setEmergencyEntryResult()
   goEmergency()
 }
 
@@ -133,17 +150,7 @@ const showRecommendationLoading = computed(
         variant="subtle"
       >
         Step:
-        {{
-          step === 'persona'
-            ? 'Persona'
-            : step === 'category'
-              ? 'Category'
-              : step === 'redFlags'
-                ? 'Warning signs'
-                : step === 'severity'
-                  ? 'Severity'
-                  : 'Result'
-        }}
+        {{ stepBadgeLabel(step) }}
       </UBadge>
     </div>
 

@@ -1,6 +1,6 @@
 # CarePath WA — HTTP API (MVP)
 
-**Base URL:** Same origin as the Nuxt app (Nitro). **No public Supabase keys** for privileged operations; server routes use server-side config only.
+**Base URL:** Same origin as the Nuxt app (Nitro). **No Supabase service role** in the browser; server routes read `NUXT_PUBLIC_SUPABASE_URL` + `NUXT_SUPABASE_SERVICE_ROLE_KEY` from Nitro `runtimeConfig` only (see `.env.example`).
 
 **Scope:** Matches `docs/SPEC.md` — routing recommendations only, not diagnosis. All copy is non-diagnostic.
 
@@ -80,23 +80,23 @@
 
 **Errors:**
 
-- `400` — invalid body, missing `consentGiven`, or invalid enum values.
+- `400` — invalid body: not a JSON object (`INVALID_BODY`), `consentGiven` not strictly `true` (`CONSENT_REQUIRED`), or invalid enum values.
 - `422` — valid JSON but signals inconsistent (optional; prefer deterministic defaults if SPEC prefers no dead ends).
 
 ---
 
 ## `GET /api/providers/nearby`
 
-**Purpose:** Return nearby care facilities for list/map (seeded DB or fallback).
+**Purpose:** Return nearby care facilities for list/map. Reads from Supabase `providers` when URL + service key are set and the query succeeds; otherwise returns the same **deterministic** embedded demo list (`static_fallback`). Empty DB or query errors also fall back so the golden demo path always has venues.
 
 **Query parameters:**
 
 | Param | Type | Required | Notes |
 |-------|------|----------|--------|
-| `lat` | number | Conditional | Required if using geo query |
+| `lat` | number | Conditional | With `lng`, sorts matches by Haversine distance (km) |
 | `lng` | number | Conditional | |
-| `suburb` | string | Conditional | Fallback when geolocation denied |
-| `route` | string | No | Filter by type of care aligned to recommendation |
+| `suburb` | string | Conditional | Filters rows whose `suburb` or `address` contains the string (case-insensitive); trimmed; **max 120 chars** (longer input is truncated server-side) |
+| `route` | string | No | Care route: `ed` \| `gp` \| `pharmacy` \| `urgent_care_clinic`; invalid values default to `gp` |
 
 **Success:** `200 OK`
 
@@ -119,7 +119,9 @@
 
 **Errors:**
 
-- `400` — missing location strategy (neither coords nor suburb).
+- `400` — missing location strategy (neither coords nor suburb), or invalid `lat`/`lng` (non-finite numbers).
+
+**Migrations:** `supabase/migrations/001_providers.sql`, `002_households.sql`; seed: `supabase/seed/providers.sql`.
 
 ---
 

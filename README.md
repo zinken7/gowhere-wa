@@ -35,6 +35,8 @@ Make sure to install the dependencies:
 pnpm install
 ```
 
+**Supabase (optional):** Copy `.env.example` to `.env` and set `NUXT_PUBLIC_SUPABASE_URL` and `NUXT_SUPABASE_SERVICE_ROLE_KEY` for live provider data. Without them, `GET /api/providers/nearby` uses the built-in static demo list. On Vercel, add the same variables in Project Settings → Environment Variables.
+
 ## Development Server
 
 Start the development server on `http://localhost:3000`:
