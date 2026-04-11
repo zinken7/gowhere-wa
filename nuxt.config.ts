@@ -16,7 +16,7 @@ export default defineNuxtConfig({
 
   /** Disable in production builds to avoid shipping devtools to users. */
   devtools: {
-    enabled: process.env.NODE_ENV !== 'production'
+    enabled: false
   },
 
   css: ['~/assets/css/main.css'],

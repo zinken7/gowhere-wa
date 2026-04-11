@@ -1,4 +1,4 @@
-# Spec: CarePath WA (MVP)
+# Spec: GoWhere WA (MVP)
 
 ## Objective
 
@@ -63,7 +63,7 @@ pnpm test:e2e
 *Expected once Nuxt app exists:*
 
 ```
-CarePath/
+GoWhere/
 ├── app/
 │   ├── app.vue
 │   ├── assets/

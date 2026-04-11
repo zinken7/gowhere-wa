@@ -1,8 +1,6 @@
 <script setup lang="ts">
 defineProps<{
   showEdCta?: boolean
-  /** Non-diagnostic routing rationale from the same response as RecommendationCard. */
-  routingHint?: string
 }>()
 </script>
 
@@ -12,12 +10,6 @@ defineProps<{
       <h3 class="text-base font-semibold">
         If you are unsafe right now
       </h3>
-      <p
-        v-if="routingHint"
-        class="text-sm text-muted mt-2"
-      >
-        {{ routingHint }}
-      </p>
     </template>
     <ul class="space-y-3 text-sm">
       <li class="flex flex-col gap-2">
@@ -47,7 +39,7 @@ defineProps<{
     </ul>
     <p
       v-if="showEdCta"
-      class="text-xs text-muted mt-3"
+      class="mt-3 text-xs text-muted"
     >
       Emergency departments treat the most serious and time-critical concerns first.
     </p>

@@ -4,15 +4,50 @@
 @theme static {
   --font-sans: 'Public Sans', sans-serif;
 
-  --color-green-50: #EFFDF5;
-  --color-green-100: #D9FBE8;
-  --color-green-200: #B3F5D1;
-  --color-green-300: #75EDAE;
-  --color-green-400: #00DC82;
-  --color-green-500: #00C16A;
-  --color-green-600: #00A155;
-  --color-green-700: #007F45;
-  --color-green-800: #016538;
-  --color-green-900: #0A5331;
-  --color-green-950: #052E16;
+  /* GoWhere brand palette (based on #F97316 primary) */
+  --color-brand-50:  #FFF4EC;
+  --color-brand-100: #FFE7D5;
+  --color-brand-200: #FFD0AE;
+  --color-brand-300: #FFB07A;
+  --color-brand-400: #FF9147;
+  --color-brand-500: #F97316;
+  --color-brand-600: #E85D04;
+  --color-brand-700: #C64B08;
+  --color-brand-800: #9E3C0F;
+  --color-brand-900: #7E3212;
+  --color-brand-950: #451806;
+
+  /* Warm neutral palette for surfaces/borders */
+  --color-sand-50: #FFF4EC;
+  --color-sand-100: #F5E6D8;
+  --color-sand-200: #E8D5C4;
+  --color-sand-300: #D8C8BC;
+  --color-sand-400: #B8A494;
+  --color-sand-500: #8FA3AD;
+  --color-sand-600: #6B5E52;
+  --color-sand-700: #3A261C;
+  --color-sand-800: #241813;
+  --color-sand-900: #1A120E;
+  --color-sand-950: #120C09;
+}
+
+/* ───── Dark mode semantic overrides ───── */
+.dark {
+  /* Surface & background */
+  --ui-bg: var(--color-sand-950);
+
+  /* Text */
+  --ui-text-highlighted: #FFF4EC;
+  --ui-text-muted: #D8C8BC;
+}
+
+/* ───── Base styles ───── */
+html.dark {
+  background: var(--color-sand-950);
+  color-scheme: dark;
+}
+
+body {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }

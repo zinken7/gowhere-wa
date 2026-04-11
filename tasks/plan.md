@@ -1,4 +1,4 @@
-# Implementation plan — CarePath WA (MVP)
+# Implementation plan — GoWhere WA (MVP)
 
 **Inputs:** `docs/SPEC.md` (approved, build-ready).  
 **Mode:** Solo hackathon — optimize for **one shippable demo** and **vertical slices** (feature slices through the stack), not “all backend then all frontend.”

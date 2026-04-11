@@ -2,7 +2,9 @@ import { describe, expect, it } from 'vitest'
 import {
   applySuburbPreference,
   distanceKm,
-  getProvidersNearby
+  getProvidersNearby,
+  rankAndLimitProviders,
+  type ProviderListItem
 } from '../../server/lib/provider-query'
 
 describe('distanceKm', () => {
@@ -41,11 +43,39 @@ describe('applySuburbPreference', () => {
   })
 })
 
+describe('rankAndLimitProviders', () => {
+  const four: ProviderListItem[] = [
+    { id: '1', name: 'A', type: 'gp', address: 'x', lat: -31.95, lng: 115.85, phone: null },
+    { id: '2', name: 'B', type: 'gp', address: 'y', lat: -31.96, lng: 115.86, phone: null },
+    { id: '3', name: 'C', type: 'gp', address: 'z', lat: -31.97, lng: 115.87, phone: null },
+    { id: '4', name: 'D', type: 'gp', address: 'w', lat: -31.98, lng: 115.88, phone: null }
+  ]
+
+  it('caps results at limit', () => {
+    const out = rankAndLimitProviders(four, {}, 3)
+    expect(out).toHaveLength(3)
+  })
+
+  it('sorts by distance and sets distanceKm when lat/lng given', () => {
+    const origin = { lat: -31.9536, lng: 115.8577 }
+    const out = rankAndLimitProviders(four, origin, 2)
+    expect(out).toHaveLength(2)
+    expect(out[0]!.distanceKm).toBeDefined()
+    expect(out[0]!.distanceKm!).toBeLessThanOrEqual(out[1]!.distanceKm!)
+  })
+})
+
 describe('getProvidersNearby', () => {
   it('uses static_fallback when Supabase client is null', async () => {
     const r = await getProvidersNearby(null, 'gp', {})
     expect(r.source).toBe('static_fallback')
     expect(r.items.length).toBeGreaterThan(0)
+    expect(r.items.length).toBeLessThanOrEqual(3)
     expect(r.items.every(i => i.type === 'gp')).toBe(true)
+  })
+
+  it('respects limit in static fallback', async () => {
+    const r = await getProvidersNearby(null, 'ed', { limit: 1 })
+    expect(r.items).toHaveLength(1)
   })
 })

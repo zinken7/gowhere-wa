@@ -1,9 +1,10 @@
 <script setup lang="ts">
+import type { ProviderLoadStatus } from '~/composables/useProviders'
 import type { ProviderItem } from '~/types/api'
 
 defineProps<{
   items: ProviderItem[]
-  status: 'idle' | 'loading' | 'error' | 'success'
+  status: ProviderLoadStatus
   errorMessage?: string
 }>()
 
@@ -11,24 +12,24 @@ const emit = defineEmits<{ retry: [] }>()
 </script>
 
 <template>
-  <UCard>
+  <UCard :ui="{ body: 'space-y-4' }">
     <template #header>
-      <h3 class="text-base font-semibold">
-        Example places (demo data)
+      <h3 class="text-lg font-semibold text-highlighted">
+        Nearby options
       </h3>
-      <p class="text-sm text-muted mt-1">
-        Not a complete directory — verify details before you travel.
+      <p class="mt-1 text-xs text-muted">
+        Confirm details before you go.
       </p>
     </template>
 
     <div
-      v-if="status === 'loading' || (status === 'idle' && items.length === 0)"
+      v-if="status === 'loading'"
       class="space-y-3"
       aria-busy="true"
     >
-      <USkeleton class="h-16 w-full" />
-      <USkeleton class="h-16 w-full" />
-      <USkeleton class="h-16 w-full" />
+      <USkeleton class="h-20 w-full rounded-lg" />
+      <USkeleton class="h-20 w-full rounded-lg" />
+      <USkeleton class="h-20 w-full rounded-lg" />
     </div>
 
     <UAlert
@@ -50,48 +51,65 @@ const emit = defineEmits<{ retry: [] }>()
     </UAlert>
 
     <div
+      v-else-if="status === 'need_suburb'"
+      class="rounded-lg border border-dashed border-default bg-elevated/30 px-4 py-6 text-center text-sm text-muted"
+      role="status"
+    >
+      Use the suburb dialog to load nearby options for this care setting.
+    </div>
+
+    <div
       v-else-if="status === 'success' && items.length === 0"
       class="rounded-lg border border-dashed border-default p-6 text-center text-sm text-muted"
       role="status"
     >
-      No demo venues matched this filter. Try another route or check back later.
+      No venues matched this route. Try another suburb or check back later.
     </div>
 
     <ul
-      v-else
+      v-else-if="status === 'success' && items.length > 0"
       class="space-y-3"
+      role="list"
     >
       <li
         v-for="p in items"
         :key="p.id"
-        class="rounded-lg border border-default p-3"
+        class="rounded-xl border border-default bg-elevated/50 p-4"
       >
-        <p class="font-medium">
-          {{ p.name }}
-        </p>
-        <p class="text-sm text-muted mt-1">
-          {{ p.address }}
-        </p>
+        <div class="flex flex-col gap-1">
+          <p class="font-semibold text-highlighted">
+            {{ p.name }}
+          </p>
+          <p class="text-sm text-muted">
+            {{ p.address }}
+          </p>
+          <p
+            v-if="p.distanceKm != null"
+            class="text-xs text-muted"
+          >
+            ~{{ p.distanceKm }} km away
+          </p>
+        </div>
         <div class="mt-3 flex flex-wrap gap-2">
           <UButton
             v-if="p.phone"
             size="sm"
-            variant="outline"
+            color="primary"
             icon="i-lucide-phone"
             :to="p.phone === '000' ? 'tel:000' : `tel:${p.phone.replace(/\s/g, '')}`"
             external
           >
-            Call
+            Call now
           </UButton>
           <UButton
             size="sm"
-            variant="ghost"
-            icon="i-lucide-map"
+            variant="outline"
+            icon="i-lucide-navigation"
             :to="`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(p.address)}`"
             target="_blank"
             external
           >
-            Open in Maps
+            Get directions
           </UButton>
         </div>
       </li>

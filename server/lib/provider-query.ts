@@ -10,6 +10,8 @@ export interface ProviderListItem {
   lat: number
   lng: number
   phone: string | null
+  /** Set when `lat`/`lng` were used to rank results (Haversine, km). */
+  distanceKm?: number
 }
 
 /** Haversine distance in km (Earth mean radius). */
@@ -49,6 +51,40 @@ export function applySuburbPreference<T extends { suburb?: string | null, addres
   return narrowed.length > 0 ? narrowed : raw
 }
 
+const MIN_LIMIT = 1
+const MAX_LIMIT = 25
+
+function clampLimit(n: number | undefined): number {
+  return Math.min(Math.max(n ?? 3, MIN_LIMIT), MAX_LIMIT)
+}
+
+/** Sort by distance when origin coords exist; always slice to `limit`. */
+export function rankAndLimitProviders(
+  items: ProviderListItem[],
+  opts: { lat?: number, lng?: number },
+  limit: number
+): ProviderListItem[] {
+  const cap = clampLimit(limit)
+  let rows = [...items]
+  const lat = opts.lat
+  const lng = opts.lng
+  if (
+    lat != null
+    && lng != null
+    && Number.isFinite(lat)
+    && Number.isFinite(lng)
+  ) {
+    const origin = { lat, lng }
+    rows = rows
+      .map(r => ({
+        ...r,
+        distanceKm: Math.round(distanceKm(origin, r) * 10) / 10
+      }))
+      .sort((a, b) => (a.distanceKm ?? 0) - (b.distanceKm ?? 0))
+  }
+  return rows.slice(0, cap)
+}
+
 function mapRow(row: Record<string, unknown>): ProviderListItem | null {
   const id = row.id != null ? String(row.id) : ''
   const name = row.name != null ? String(row.name) : ''
@@ -69,8 +105,9 @@ function mapRow(row: Record<string, unknown>): ProviderListItem | null {
 export async function queryProvidersFromSupabase(
   client: SupabaseClient,
   route: CareRoute,
-  opts: { lat?: number, lng?: number, suburb?: string }
+  opts: { lat?: number, lng?: number, suburb?: string, limit?: number }
 ): Promise<ProviderListItem[]> {
+  const limit = clampLimit(opts.limit)
   const { data, error } = await client
     .from('providers')
     .select('id, name, type, address, lat, lng, phone, suburb')
@@ -84,28 +121,24 @@ export async function queryProvidersFromSupabase(
   const raw = data ?? []
   const filtered = applySuburbPreference(raw, opts.suburb)
 
-  let rows = filtered.map(mapRow).filter((r): r is ProviderListItem => r != null)
+  const rows = filtered
+    .map(mapRow)
+    .filter((r): r is ProviderListItem => r != null)
+    .filter(r => r.type === route)
 
-  const lat = opts.lat
-  const lng = opts.lng
-  if (
-    lat != null
-    && lng != null
-    && Number.isFinite(lat)
-    && Number.isFinite(lng)
-  ) {
-    const origin = { lat, lng }
-    rows = [...rows].sort(
-      (a, b) =>
-        distanceKm(origin, a) - distanceKm(origin, b)
-    )
-  }
-
-  return rows
+  return rankAndLimitProviders(rows, opts, limit)
 }
 
-function staticFallback(route: CareRoute): ProviderListItem[] {
-  return filterProvidersForRoute(route)
+function staticToItems(route: CareRoute): ProviderListItem[] {
+  return filterProvidersForRoute(route).map(p => ({
+    id: p.id,
+    name: p.name,
+    type: p.type,
+    address: p.address,
+    lat: p.lat,
+    lng: p.lng,
+    phone: p.phone
+  }))
 }
 
 /**
@@ -114,11 +147,13 @@ function staticFallback(route: CareRoute): ProviderListItem[] {
 export async function getProvidersNearby(
   client: SupabaseClient | null,
   route: CareRoute,
-  opts: { lat?: number, lng?: number, suburb?: string }
+  opts: { lat?: number, lng?: number, suburb?: string, limit?: number }
 ): Promise<{ source: 'supabase' | 'static_fallback', items: ProviderListItem[] }> {
+  const limit = clampLimit(opts.limit)
+
   const fallback = (): { source: 'static_fallback', items: ProviderListItem[] } => ({
     source: 'static_fallback',
-    items: staticFallback(route)
+    items: rankAndLimitProviders(staticToItems(route), opts, limit)
   })
 
   if (!client) {

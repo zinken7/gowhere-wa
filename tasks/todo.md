@@ -1,4 +1,4 @@
-# Task list — CarePath WA (MVP)
+# Task list — GoWhere WA (MVP)
 
 **Rules:** Order is **implementation order**. **Must** = ship blocker; **Should** = MVP quality bar if time allows; **Could** = nice-to-have. Aligns with `docs/SPEC.md` and `tasks/plan.md`.
 
@@ -25,7 +25,7 @@
   - **Verify:** file review; optional README env blurb.
 
 - [x] **A5** — [Must] **Deployment checkpoint (D1):** Vercel preview **verified** on live URL.  
-  - **Evidence (2026-04-11):** `https://visagio-hackathon.vercel.app/` — `GET /` **200**; `GET /api/health` **200** `{"ok":true,"service":"carepath-wa",...}`; `GET /api/providers/nearby?route=gp&suburb=Perth` **200** `"source":"static_fallback"` + demo GP items (Supabase not active or not seeded on preview — acceptable per API). Entry shell renders (CarePath WA + consent + Start / Emergency). **Golden path click-through:** confirm locally in browser once per release; automated agent verified APIs + home only.  
+  - **Evidence (2026-04-11):** `https://visagio-hackathon.vercel.app/` — `GET /` **200**; `GET /api/health` **200** `{"ok":true,"service":"GoWhere-wa",...}`; `GET /api/providers/nearby?route=gp&suburb=Perth` **200** `"source":"static_fallback"` + demo GP items (Supabase not active or not seeded on preview — acceptable per API). Entry shell renders (GoWhere WA + consent + Start / Emergency). **Golden path click-through:** confirm locally in browser once per release; automated agent verified APIs + home only.  
   - **Ready (repo):** `README.md` — env mapping, Supabase steps, A5 table; `runtimeConfig` + `.env.example` aligned; service role server-only.
 
 ---
@@ -68,9 +68,9 @@
 
 ## Phase D — Providers + location
 
-- [ ] **L1** — [Should] **LocationStep** — browser geolocation with **suburb fallback**; no long-term storage of raw coords (SPEC).  
-  - **Acceptance:** Works with deny geolocation; minimal retention.  
-  - **Verify:** manual (allow/deny).
+- [x] **L1** — [Should] **Location + suburb** — browser geolocation first; on failure **`SuburbLocationModal`** collects suburb for `/api/providers/nearby` (no passive hint banner); coords not stored; cancel uses **Perth WA** default.  
+  - **Acceptance:** Deny/timeout geo → modal → list loads; optional “Try location again” in modal.  
+  - **Verify:** manual.
 
 - [x] **L2** — [Should] `GET /api/providers/nearby` + Supabase migrations/seed **and** `static_fallback` when env missing or DB errors.  
   - **Acceptance:** `source` reflects live DB when configured; deterministic fallback preserves demo.  
@@ -79,6 +79,9 @@
 - [x] **L3** — [Should] **ServiceList** wired to nearby response.  
   - **Acceptance:** Shows name, address, action to open maps; loading/error/empty states.  
   - **Verify:** manual.
+
+- [x] **L4** — [Must] **Hackathon recommendation UX (2026-04):** Simplified **RecommendationCard**; **ServiceList** shows **3** route-matched providers; **`parseCareRouteQuery`** handles duplicated `route` query keys; client **`normalizeProviderItems`** filters by `type`; **`useProviders`** uses geo → else **suburb modal** (not a hint banner); cancel → **Perth WA**; **`GET /api/providers/nearby`** `limit` + **`distanceKm`** with coords.  
+  - **Verify:** `pnpm test` (provider-query + care-routes); manual result screen.
 
 ---
 
@@ -131,7 +134,59 @@ Apply in order (last items cut first):
 
 ---
 
-**Status:** Slice 1 **flow UI unblocked**: `pathPrefix: false` in `nuxt.config.ts`. **Data layer:** Supabase `providers` + `households` migrations, `supabase/seed/providers.sql`, `server/lib/supabase.ts`, `server/lib/provider-query.ts`, `/api/providers/nearby` uses DB when configured else static fallback. **A5:** Live preview verified — `visagio-hackathon.vercel.app` (see A5 line). **Open:** Phase F ship checks; optional Supabase env + migrations on Vercel for `source: supabase`; **L1** LocationStep if prioritizing geo/suburb UX.
+## Phase V — Voice-First Pivot
+
+- [x] **V1** — [Must] Voice capture composable (`useVoiceCapture`) — browser SpeechRecognition with text fallback.
+  - **Acceptance:** `isSupported` detects API; `isListening` toggles on start/stop; transcript populated on speech end; graceful degradation to text input.
+  - **Verify:** manual (Chrome desktop + mobile).
+
+- [x] **V2** — [Must] Intake analysis types (`shared/intake-types.ts`) — discriminated union: `emergency | confirm | follow_up`.
+  - **Acceptance:** TypeScript compiles; types used by both server and client.
+  - **Verify:** `pnpm build`.
+
+- [x] **V3** — [Must] Deterministic intake parser (`server/lib/intake-parser.ts`) — keyword/pattern matching for emergency detection, category, severity, red flags, persona extraction.
+  - **Acceptance:** Same text → same output; emergency keywords → `emergency` type; missing info → `follow_up` with questions.
+  - **Verify:** unit tests (TODO).
+
+- [x] **V4** — [Must] `POST /api/intake/analyze` — validates body, requires consent, returns intake response.
+  - **Acceptance:** 400 without consent; 200 with discriminated union shape; max 2000 char transcript.
+  - **Verify:** manual / curl.
+
+- [x] **V5** — [Must] Intake flow composable (`useIntakeFlow`) — state machine: entry → listening → analyzing → confirm|follow_up → recommendation.
+  - **Acceptance:** Emergency path fast; back navigation works; follow-up re-analyzes with combined context.
+  - **Verify:** manual.
+
+- [x] **V6** — [Must] Redesigned Entry screen — voice-first hero with dark background, orange accent, mic CTA, emergency pill, consent checkbox.
+  - **Acceptance:** Mobile-first full-screen; pulse animation on listening; text fallback available.
+  - **Verify:** manual (mobile viewport).
+
+- [x] **V7** — [Must] IntakeConfirm + IntakeFollowUp components — confirmation card and follow-up questions UI.
+  - **Acceptance:** Confirm shows transcript + summary + action; follow-up shows option buttons + continue.
+  - **Verify:** manual.
+
+- [x] **V8** — [Must] Rewired `index.vue` — new flow replaces old 6-step wizard; preserves RecommendationCard, SafetyNetBox, ServiceList.
+  - **Acceptance:** Full voice → analyze → confirm → recommend path works; emergency path works.
+  - **Verify:** manual golden path.
+
+- [x] **V9** — [Must] Docs updated — `API.md` has `/api/intake/analyze`; `ARCHITECTURE.md` has intake parser layer.
+  - **Verify:** doc review.
+
+- [ ] **V10** — [Should] Unit tests for `intake-parser.ts` — emergency keywords, category extraction, missing signal detection.
+  - **Verify:** `pnpm test`.
+
+- [ ] **V11** — [Should] Polish Entry screen — match mockup pixel-perfect; test on real device.
+  - **Verify:** manual on phone.
+
+### Old flow components (retired but not deleted)
+- `PersonaSelector.vue` — no longer rendered from index.vue; intake parser extracts persona.
+- `CategoryGrid.vue` — no longer rendered; intake parser extracts category.
+- `RedFlagChecklist.vue` — no longer rendered; intake parser detects red flags.
+- `SeverityQuestions.vue` — no longer rendered; intake parser + follow-up handles severity.
+- `useFlowState.ts` — no longer imported; replaced by `useIntakeFlow.ts`.
+
+---
+
+**Status:** Slice 1 **flow UI unblocked**: `pathPrefix: false` in `nuxt.config.ts`. **Voice-first pivot complete (V1–V9)**: voice capture, intake parser, API, flow composable, Entry redesign, confirm/follow-up UI, index.vue rewired. **Open:** V10 intake parser tests; V11 design polish; Phase F ship checks; optional Supabase env + migrations on Vercel for `source: supabase`; **L1** LocationStep if prioritizing geo/suburb UX.
 
 ---
 
@@ -157,10 +212,10 @@ No **critical**-severity issues identified in this pass.
 
 | Severity | Item |
 |----------|------|
-| **Medium** | **L1** still open: `useProviders` uses fixed `suburb: 'Perth WA'` — no browser geolocation or user suburb field; demo is WA-centric but not location-personalized. |
+| **Medium** | **L1** partial: `useProviders` now tries **one-shot** browser geolocation for ranking + `distanceKm`; on deny/timeout falls back to **`Perth WA`** suburb (no user-editable suburb field). |
 | **Medium** | **Mobile viewport** not covered by automated E2E — manual check on real device / DevTools still required (F4). |
 | **Medium** | **`/` prerender** (`routeRules`) — client-side `$fetch` to `/api/*` after hydration is expected; confirm once on Vercel preview (CORS same-origin, Nitro on server). |
-| **Low** | **RecommendationCard** shows raw `reasonCodes` — fine for transparency; may trim for judge-facing demo copy later. |
+| **Done** | **RecommendationCard** no longer shows `reasonCodes` / rules version on the result screen (hackathon scan-friendly). |
 | **Low** | **Rate limiting** on public APIs not implemented (noted in `docs/API.md`). |
 | **Low** | **Supabase failure**: server already falls back to `static_fallback`; client rarely sees provider errors unless network/400 — covered by server design. |
 

@@ -1,7 +1,7 @@
 export default defineEventHandler(() => {
   return {
     ok: true,
-    service: 'carepath-wa',
+    service: 'GoWhere-wa',
     time: new Date().toISOString()
   }
 })

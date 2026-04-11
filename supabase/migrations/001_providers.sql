@@ -1,4 +1,4 @@
--- CarePath WA — provider directory (no user PII; public care venue metadata).
+-- GoWhere WA — provider directory (no user PII; public care venue metadata).
 -- RLS: anon/authenticated may read active rows; writes via service role / dashboard only.
 
 create table public.providers (

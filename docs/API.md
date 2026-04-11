@@ -1,4 +1,4 @@
-# CarePath WA — HTTP API (MVP)
+# GoWhere WA — HTTP API (MVP)
 
 **Base URL:** Same origin as the Nuxt app (Nitro). **No Supabase service role** in the browser; server routes read `NUXT_PUBLIC_SUPABASE_URL` + `NUXT_SUPABASE_SERVICE_ROLE_KEY` from Nitro `runtimeConfig` only (see `.env.example`).
 
@@ -21,10 +21,62 @@
 ```json
 {
   "ok": true,
-  "service": "carepath-wa",
+  "service": "GoWhere-wa",
   "time": "2026-04-11T00:00:00.000Z"
 }
 ```
+
+---
+
+## `POST /api/intake/analyze`
+
+**Purpose:** Transform free-form user input (voice transcript or typed text) into structured routing signals. Returns one of three outcomes: emergency escalation, confirmation summary, or follow-up questions.
+
+**Request body:**
+
+| Field | Type | Required | Notes |
+|-------|------|----------|-------|
+| `transcript` | string | Yes | Free-form text from voice or keyboard (max 2000 chars) |
+| `consentGiven` | boolean | Yes | Must be `true` |
+| `priorSignals` | object | No | Partial signals from a previous follow-up round |
+
+**Success:** `200 OK` — discriminated union (`type` field):
+
+**Emergency:**
+```json
+{
+  "type": "emergency",
+  "reason": "Your description suggests you may need immediate emergency help."
+}
+```
+
+**Confirm (enough signals to route):**
+```json
+{
+  "type": "confirm",
+  "summary": "You described a breathing concern with moderate severity.",
+  "signals": { /* TriageSignals object ready for /api/triage/recommend */ }
+}
+```
+
+**Follow-up (missing information):**
+```json
+{
+  "type": "follow_up",
+  "questions": [
+    {
+      "id": "category",
+      "text": "What is your main health concern?",
+      "options": ["Breathing or lung issue", "Chest discomfort", "..."]
+    }
+  ],
+  "partialSignals": { /* Partial TriageSignals extracted so far */ }
+}
+```
+
+**Errors:**
+
+- `400` — invalid body (`INVALID_BODY`), consent not given (`CONSENT_REQUIRED`), or missing transcript (`MISSING_TRANSCRIPT`).
 
 ---
 
@@ -50,7 +102,7 @@
 
 ```json
 {
-  "rulesVersion": "carepath-wa-1.0.0",
+  "rulesVersion": "GoWhere-wa-1.0.0",
   "route": "ed | gp | pharmacy | urgent_care_clinic",
   "urgency": "immediate | today | 24_to_48h | routine",
   "shortReason": "Plain-language explanation of why this care setting fits (not a diagnosis).",
@@ -89,14 +141,17 @@
 
 **Purpose:** Return nearby care facilities for list/map. Reads from Supabase `providers` when URL + service key are set and the query succeeds; otherwise returns the same **deterministic** embedded demo list (`static_fallback`). Empty DB or query errors also fall back so the golden demo path always has venues.
 
+**Ranking:** With **`lat` + `lng`**, results are sorted by straight-line distance (Haversine) and include **`distanceKm`**. With **`suburb`** only (no coords), rows are filtered by substring match on `suburb` / `address`; if nothing matches, all rows for that **`route`** are returned — still **type-filtered** by `route` (`ed`, `gp`, `pharmacy`, `urgent_care_clinic`).
+
 **Query parameters:**
 
 | Param | Type | Required | Notes |
 |-------|------|----------|--------|
-| `lat` | number | Conditional | With `lng`, sorts matches by Haversine distance (km) |
+| `lat` | number | Conditional | With `lng`, sorts matches by Haversine distance (km) and includes **`distanceKm`** on each item |
 | `lng` | number | Conditional | |
 | `suburb` | string | Conditional | Preferentially filters rows whose `suburb` or `address` contains the substring (case-insensitive). If **no** row matches, returns all rows for `route` (avoids empty results for broad labels like “Perth” vs seeded suburbs). Trimmed; **max 120 chars** (longer input truncated server-side). |
-| `route` | string | No | Care route: `ed` \| `gp` \| `pharmacy` \| `urgent_care_clinic`; invalid values default to `gp` |
+| `route` | string | No | Care route: `ed` \| `gp` \| `pharmacy` \| `urgent_care_clinic`; invalid values default to `gp`. If the same key is repeated, the **first** value wins (matches `parseCareRouteQuery` in `shared/care-routes.ts`). |
+| `limit` | number | No | Max rows to return (default **3**, min 1, max **25**). List UIs should use a small limit. |
 
 **Success:** `200 OK`
 
@@ -111,11 +166,14 @@
       "address": "string",
       "lat": 0,
       "lng": 0,
-      "phone": "string | null"
+      "phone": "string | null",
+      "distanceKm": 0
     }
   ]
 }
 ```
+
+- **`distanceKm`** — Included only when `lat` + `lng` were provided; straight-line distance in kilometres (Haversine), rounded to one decimal. Omitted for suburb-only lookups.
 
 **Errors:**
 

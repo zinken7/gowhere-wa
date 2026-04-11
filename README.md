@@ -1,4 +1,4 @@
-# CarePath WA (MVP)
+# GoWhere WA (MVP)
 
 Panic-proof **care routing** for Western Australia — deterministic rules, not a diagnosis. Stack: **Nuxt 4**, **Nitro**, **Nuxt UI**, optional **Supabase** for provider data.
 
@@ -56,8 +56,8 @@ Run these against the **preview URL** Vercel assigns (replace `https://YOUR-PREV
 
 | # | Check | How |
 |---|--------|-----|
-| 1 | App shell loads | Open `/` — CarePath layout, no blank page. |
-| 2 | Health | `curl -sS "https://YOUR-PREVIEW.vercel.app/api/health"` → HTTP **200**, JSON with `"ok": true`, `"service": "carepath-wa"`. |
+| 1 | App shell loads | Open `/` — GoWhere layout, no blank page. |
+| 2 | Health | `curl -sS "https://YOUR-PREVIEW.vercel.app/api/health"` → HTTP **200**, JSON with `"ok": true`, `"service": "GoWhere-wa"`. |
 | 3 | Golden path | In browser: consent → persona → category → red flags → severity → **recommendation** with card + list; no dead end. |
 | 4 | Providers with Supabase (env set) | `curl -sS "https://YOUR-PREVIEW.vercel.app/api/providers/nearby?route=gp&suburb=Perth"` → HTTP **200**, JSON `"source": "supabase"` if DB seeded and keys valid; otherwise `"static_fallback"` is acceptable. |
 | 5 | Fallback safe | Temporarily clear **`NUXT_SUPABASE_SERVICE_ROLE_KEY`** on a **test** preview (or use a project without DB): same `curl` → **200** and venues in `items`, `"source": "static_fallback"`. Restore env after. |

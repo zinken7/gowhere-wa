@@ -1,32 +1,19 @@
 <script setup lang="ts">
-import type { FlowStep } from '~/types/flow'
-
-const STEP_BADGE: Partial<Record<FlowStep, string>> = {
-  persona: 'Persona',
-  category: 'Category',
-  redFlags: 'Warning signs',
-  severity: 'Severity',
-  recommendation: 'Result'
-}
-
-function stepBadgeLabel(step: FlowStep): string {
-  return STEP_BADGE[step] ?? 'Result'
-}
-
 const {
   step,
   consentGiven,
+  transcript,
+  summary,
+  signals,
+  questions,
   entryEmergency,
-  persona,
-  categoryKey,
-  redFlagIds,
-  severity,
-  afterHours,
-  hasRedFlags,
-  toTriageSignals,
-  goEmergency,
+  analyzeTranscript,
+  confirmAndProceed,
   back
-} = useFlowState()
+} = useIntakeFlow()
+
+// Expose step to app.vue for chrome visibility
+provide('flowStep', step)
 
 const {
   result: recResult,
@@ -41,29 +28,34 @@ const {
   items: provItems,
   status: provStatus,
   errorMessage: provError,
+  suburbModalOpen: provSuburbModalOpen,
+  suburbDraft: provSuburbDraft,
   prepareForLoad,
   loadForRoute,
+  confirmSuburb,
+  cancelSuburbModal,
+  retryLocationFromModal,
   reset: provReset
 } = useProviders()
 
 useHead({
-  title: 'CarePath WA — Care routing',
+  title: 'GoWhere WA — Care routing',
   meta: [
     {
       name: 'description',
       content:
-        'Choose a sensible care setting in Western Australia — routing only, not a diagnosis.'
+        'Describe your concern by voice — we\'ll suggest where to seek care in Western Australia.'
     }
   ]
 })
 
+// When step reaches recommendation, load the result
 watch(step, async (s) => {
-  if (s !== 'recommendation') {
-    return
-  }
+  if (s !== 'recommendation') return
   await loadRecommendationPanel()
 })
 
+// Reset recommendation state when leaving recommendation
 watch(step, (s, prev) => {
   if (prev === 'recommendation' && s !== 'recommendation') {
     recReset()
@@ -73,6 +65,7 @@ watch(step, (s, prev) => {
 
 async function loadRecommendationPanel() {
   prepareForLoad()
+
   if (entryEmergency.value) {
     setEmergencyEntryResult()
     const r = recResult.value
@@ -81,37 +74,27 @@ async function loadRecommendationPanel() {
     }
     return
   }
-  await fetchRecommendation(toTriageSignals(), consentGiven.value)
-  const r = recResult.value
-  if (r) {
-    await loadForRoute(r.route)
+
+  // Use the structured signals from intake confirmation
+  if (signals.value) {
+    await fetchRecommendation(signals.value, consentGiven.value)
+    const r = recResult.value
+    if (r) {
+      await loadForRoute(r.route)
+    }
   }
 }
 
-function onStart() {
-  step.value = 'persona'
+function onVoiceStart(text: string) {
+  analyzeTranscript(text)
 }
 
-function goCategory() {
-  step.value = 'category'
+function onConfirm() {
+  confirmAndProceed()
 }
 
-function goRedFlags() {
-  step.value = 'redFlags'
-}
-
-function onEmergency() {
-  prepareForLoad()
-  setEmergencyEntryResult()
-  goEmergency()
-}
-
-function fromRedFlagsContinue() {
-  step.value = hasRedFlags.value ? 'recommendation' : 'severity'
-}
-
-function fromSeverityContinue() {
-  step.value = 'recommendation'
+function onFollowUpAnswer(text: string) {
+  analyzeTranscript(text)
 }
 
 async function retryRecommendation() {
@@ -130,13 +113,27 @@ const showRecommendationLoading = computed(
     step.value === 'recommendation'
     && (recStatus.value === 'loading' || recStatus.value === 'idle')
 )
+
+const STEP_LABELS: Partial<Record<string, string>> = {
+  confirm: 'Confirm',
+  follow_up: 'Follow-up',
+  recommendation: 'Result'
+}
 </script>
 
 <template>
-  <UContainer class="max-w-lg mx-auto px-4 py-6 pb-24">
-    <div class="mb-4 flex items-center gap-2">
+  <UContainer
+    :class="[
+      'max-w-lg mx-auto',
+      step === 'entry' ? 'px-5 py-2' : 'px-4 py-6 pb-24'
+    ]"
+  >
+    <!-- Back + step badge (hidden on entry) -->
+    <div
+      v-if="step !== 'entry' && step !== 'listening' && step !== 'analyzing'"
+      class="mb-4 flex items-center gap-2"
+    >
       <UButton
-        v-if="step !== 'entry'"
         variant="ghost"
         color="neutral"
         icon="i-lucide-arrow-left"
@@ -145,47 +142,53 @@ const showRecommendationLoading = computed(
         Back
       </UButton>
       <UBadge
-        v-if="step !== 'entry'"
+        v-if="STEP_LABELS[step]"
         color="neutral"
         variant="subtle"
       >
-        Step:
-        {{ stepBadgeLabel(step) }}
+        {{ STEP_LABELS[step] }}
       </UBadge>
     </div>
 
+    <!-- 1. Entry — voice-first hero -->
     <EntryActions
       v-if="step === 'entry'"
       v-model:consent-given="consentGiven"
-      @start="onStart"
-      @emergency="onEmergency"
+      @start="onVoiceStart"
     />
 
-    <PersonaSelector
-      v-else-if="step === 'persona'"
-      v-model="persona"
-      @continue="goCategory"
+    <!-- 2. Analyzing — loading state -->
+    <div
+      v-else-if="step === 'analyzing'"
+      class="flex flex-col items-center justify-center gap-4 py-16"
+    >
+      <USkeleton class="h-6 w-48 rounded-lg" />
+      <p class="text-sm text-muted">
+        Analyzing your concern…
+      </p>
+      <USkeleton class="h-32 w-full max-w-sm rounded-lg" />
+    </div>
+
+    <!-- 3. Confirm — user verifies parsed summary -->
+    <IntakeConfirm
+      v-else-if="step === 'confirm' && signals"
+      :summary="summary"
+      :signals="signals"
+      :transcript="transcript"
+      @confirm="onConfirm"
+      @back="back()"
     />
 
-    <CategoryGrid
-      v-else-if="step === 'category'"
-      v-model="categoryKey"
-      @continue="goRedFlags"
+    <!-- 4. Follow-up — need more info -->
+    <IntakeFollowUp
+      v-else-if="step === 'follow_up'"
+      :questions="questions"
+      :transcript="transcript"
+      @answer="onFollowUpAnswer"
+      @back="back()"
     />
 
-    <RedFlagChecklist
-      v-else-if="step === 'redFlags'"
-      v-model="redFlagIds"
-      @continue="fromRedFlagsContinue"
-    />
-
-    <SeverityQuestions
-      v-else-if="step === 'severity'"
-      v-model:severity="severity"
-      v-model:after-hours="afterHours"
-      @continue="fromSeverityContinue"
-    />
-
+    <!-- 5. Recommendation -->
     <div
       v-else-if="step === 'recommendation'"
       class="space-y-4"
@@ -219,14 +222,22 @@ const showRecommendationLoading = computed(
       </UAlert>
 
       <template v-else-if="recStatus === 'success' && recResult">
-        <div class="mb-2">
+        <!-- <div class="mb-2">
           <FlowDisclaimer compact />
-        </div>
+        </div> -->
         <RecommendationCard :result="recResult" />
         <SafetyNetBox
           :show-ed-cta="recResult.route === 'ed'"
-          :routing-hint="recResult.shortReason"
         />
+        <ClientOnly>
+          <SuburbLocationModal
+            v-model:open="provSuburbModalOpen"
+            v-model:suburb="provSuburbDraft"
+            @confirm="confirmSuburb"
+            @cancel="cancelSuburbModal"
+            @retry-location="retryLocationFromModal"
+          />
+        </ClientOnly>
         <ServiceList
           :items="provItems"
           :status="provStatus"
@@ -236,12 +247,13 @@ const showRecommendationLoading = computed(
       </template>
     </div>
 
+    <!-- Fallback -->
     <UAlert
       v-else
       color="warning"
       variant="subtle"
       title="This step could not be shown"
-      description="Try refreshing the page. If the problem continues, open the browser console and report missing component errors."
+      description="Try refreshing the page."
     />
   </UContainer>
 </template>
