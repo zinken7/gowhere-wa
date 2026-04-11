@@ -151,15 +151,18 @@ CarePath/
 **Example (pure routing helper — illustrative):**
 
 ```ts
-export type CareRoute = 'ed' | 'gp' | 'pharmacy' | 'telehealth' | 'self_care'
+export type CareRoute = 'ed' | 'gp' | 'pharmacy' | 'urgent_care_clinic'
 
 export function routeFromSignals(signals: {
   redFlags: boolean
-  canWaitHours: boolean
+  medicationOrMinorIssue: boolean
+  afterHours: boolean
+  needsSameDay: boolean
 }): CareRoute {
   if (signals.redFlags) return 'ed'
-  if (!signals.canWaitHours) return 'gp'
-  return 'self_care'
+  if (signals.medicationOrMinorIssue) return 'pharmacy'
+  if (signals.afterHours && signals.needsSameDay) return 'urgent_care_clinic'
+  return 'gp'
 }
 ```
 
