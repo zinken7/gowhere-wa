@@ -6,6 +6,10 @@ import { getSupabaseAdmin } from '../../lib/supabase'
 const MAX_SUBURB_LEN = 120
 
 export default defineEventHandler(async (event) => {
+  const config = useRuntimeConfig()
+
+  console.log("SUPABASE URL:", config.public.supabaseUrl)
+  console.log("HAS SERVICE KEY:", !!config.supabaseServiceRoleKey)
   const q = getQuery(event)
   const hasCoords
     = q.lat !== undefined && q.lng !== undefined && q.lat !== '' && q.lng !== ''
