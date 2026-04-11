@@ -1,0 +1,167 @@
+{
+  "version": "2.0",
+  "triage_levels": [
+    {
+      "level": "ed",
+      "priority": 1,
+      "action": "Go to Emergency Department or call 000 immediately",
+      "description": "Life-threatening or critical condition"
+    },
+    {
+      "level": "urgent_care_clinic",
+      "priority": 2,
+      "action": "Go to urgent care clinic immediately",
+      "description": "Serious but not life-threatening"
+    },
+    {
+      "level": "gp",
+      "priority": 3,
+      "action": "See a GP",
+      "description": "Needs medical assessment"
+    },
+    {
+      "level": "pharmacy",
+      "priority": 4,
+      "action": "Visit a pharmacy",
+      "description": "Minor condition"
+    }
+  ],
+
+  "cases": [
+    {
+      "id": "C001",
+      "symptoms": ["chest pain", "pressure in chest", "pain spreading to arm"],
+      "conditions": ["heart attack suspicion"],
+      "triage": "ed"
+    },
+    {
+      "id": "C002",
+      "symptoms": ["difficulty breathing", "shortness of breath at rest"],
+      "conditions": ["respiratory distress", "asthma attack"],
+      "triage": "ed"
+    },
+    {
+      "id": "C003",
+      "symptoms": ["unconscious", "not responding"],
+      "conditions": ["collapse"],
+      "triage": "ed"
+    },
+    {
+      "id": "C004",
+      "symptoms": ["seizure", "convulsions"],
+      "conditions": ["neurological emergency"],
+      "triage": "ed"
+    },
+    {
+      "id": "C005",
+      "symptoms": ["severe bleeding", "cannot stop bleeding"],
+      "conditions": ["trauma"],
+      "triage": "ed"
+    },
+    {
+      "id": "C006",
+      "symptoms": ["face drooping", "arm weakness", "speech difficulty"],
+      "conditions": ["stroke"],
+      "triage": "ed"
+    },
+    {
+      "id": "C007",
+      "symptoms": ["severe allergic reaction", "swelling throat", "difficulty breathing"],
+      "conditions": ["anaphylaxis"],
+      "triage": "ed"
+    },
+
+    {
+      "id": "C008",
+      "symptoms": ["high fever > 39C", "lethargy", "child very unwell"],
+      "conditions": ["serious infection"],
+      "triage": "urgent_care_clinic"
+    },
+    {
+      "id": "C009",
+      "symptoms": ["persistent vomiting", "cannot keep fluids"],
+      "conditions": ["dehydration risk"],
+      "triage": "urgent_care_clinic"
+    },
+    {
+      "id": "C010",
+      "symptoms": ["severe abdominal pain"],
+      "conditions": ["appendicitis"],
+      "triage": "urgent_care_clinic"
+    },
+    {
+      "id": "C011",
+      "symptoms": ["head injury", "vomiting", "confusion"],
+      "conditions": ["concussion"],
+      "triage": "urgent_care_clinic"
+    },
+    {
+      "id": "C012",
+      "symptoms": ["burns with blistering", "large area burn"],
+      "conditions": ["moderate burns"],
+      "triage": "urgent_care_clinic"
+    },
+
+    {
+      "id": "C013",
+      "symptoms": ["worsening cough", "fever"],
+      "conditions": ["respiratory infection"],
+      "triage": "gp"
+    },
+    {
+      "id": "C014",
+      "symptoms": ["ear pain", "child crying"],
+      "conditions": ["ear infection"],
+      "triage": "gp"
+    },
+    {
+      "id": "C015",
+      "symptoms": ["pain when urinating"],
+      "conditions": ["UTI"],
+      "triage": "gp"
+    },
+    {
+      "id": "C016",
+      "symptoms": ["persistent cough > 1 week"],
+      "conditions": ["viral illness"],
+      "triage": "gp"
+    },
+    {
+      "id": "C017",
+      "symptoms": ["joint pain", "mild swelling"],
+      "conditions": ["inflammation"],
+      "triage": "gp"
+    },
+    {
+      "id": "C018",
+      "symptoms": ["skin rash"],
+      "conditions": ["dermatitis"],
+      "triage": "gp"
+    },
+
+    {
+      "id": "C019",
+      "symptoms": ["minor cut", "small wound"],
+      "conditions": ["skin injury"],
+      "triage": "pharmacy"
+    },
+    {
+      "id": "C020",
+      "symptoms": ["mild headache"],
+      "conditions": ["tension headache"],
+      "triage": "pharmacy"
+    },
+    {
+      "id": "C021",
+      "symptoms": ["runny nose", "mild cough", "cold symptoms"],
+      "conditions": ["common cold"],
+      "triage": "pharmacy"
+    },
+    {
+      "id": "C022",
+      "symptoms": ["mild sore throat"],
+      "conditions": ["viral throat infection"],
+      "triage": "pharmacy"
+    }
+  ]
+}

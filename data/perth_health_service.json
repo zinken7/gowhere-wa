@@ -1,0 +1,284 @@
+{
+  "source": "verified_perth_seed",
+  "items": [
+    {
+      "id": "hospital-royal-perth",
+      "name": "Royal Perth Hospital",
+      "type": "hospital",
+      "address": "197 Wellington Street, Perth WA 6000",
+      "lat": -31.9516,
+      "lng": 115.866,
+      "phone": "08 9224 2244"
+    },
+    {
+      "id": "hospital-fiona-stanley",
+      "name": "Fiona Stanley Hospital",
+      "type": "hospital",
+      "address": "11 Robin Warren Drive, Murdoch WA 6150",
+      "lat": -32.0694,
+      "lng": 115.8351,
+      "phone": "08 6152 2222"
+    },
+    {
+      "id": "hospital-sir-charles-gairdner",
+      "name": "Sir Charles Gairdner Hospital",
+      "type": "hospital",
+      "address": "Hospital Avenue, Nedlands WA 6009",
+      "lat": -31.968,
+      "lng": 115.8177,
+      "phone": "08 6457 3333"
+    },
+    {
+      "id": "hospital-perth-childrens",
+      "name": "Perth Children's Hospital",
+      "type": "hospital",
+      "address": "15 Hospital Avenue, Nedlands WA 6009",
+      "lat": -31.9633,
+      "lng": 115.8172,
+      "phone": "08 6456 2222"
+    },
+    {
+      "id": "hospital-joondalup",
+      "name": "Joondalup Health Campus",
+      "type": "hospital",
+      "address": "Cnr Grand Boulevard & Shenton Avenue, Joondalup WA 6027",
+      "lat": -31.7442,
+      "lng": 115.769,
+      "phone": "08 9400 9400"
+    },
+    {
+      "id": "hospital-midland",
+      "name": "St John of God Midland Public Hospital",
+      "type": "hospital",
+      "address": "1 Clayton Street, Midland WA 6056",
+      "lat": -31.8895,
+      "lng": 116.0107,
+      "phone": "08 9462 4000"
+    },
+    {
+      "id": "hospital-armadale",
+      "name": "Armadale Health Service",
+      "type": "hospital",
+      "address": "3056 Albany Highway, Mount Nasura WA 6112",
+      "lat": -32.1519,
+      "lng": 116.0125,
+      "phone": "08 9391 2000"
+    },
+    {
+      "id": "hospital-king-edward",
+      "name": "King Edward Memorial Hospital",
+      "type": "hospital",
+      "address": "374 Bagot Road, Subiaco WA 6008",
+      "lat": -31.9572,
+      "lng": 115.8206,
+      "phone": "08 6458 2222"
+    },
+    {
+      "id": "hospital-rockingham",
+      "name": "Rockingham General Hospital",
+      "type": "hospital",
+      "address": "Elanora Drive, Cooloongup WA 6168",
+      "lat": -32.2927,
+      "lng": 115.7698,
+      "phone": "08 9599 4000"
+    },
+    {
+      "id": "ucc-armadale",
+      "name": "St John Urgent Care Armadale",
+      "type": "urgent_care_clinic",
+      "address": "Shop 62/63, 10 Orchard Avenue, Armadale WA 6112",
+      "lat": -32.1498,
+      "lng": 116.0159,
+      "phone": "08 9399 0909"
+    },
+    {
+      "id": "ucc-cannington",
+      "name": "St John Urgent Care Cannington",
+      "type": "urgent_care_clinic",
+      "address": "1472 Albany Highway, Beckenham WA 6107",
+      "lat": -32.0183,
+      "lng": 115.9383,
+      "phone": "08 9350 8000"
+    },
+    {
+      "id": "ucc-cockburn",
+      "name": "St John Urgent Care Cockburn",
+      "type": "urgent_care_clinic",
+      "address": "Cockburn Gateway Shopping Centre, 816 Beeliar Drive, Success WA 6164",
+      "lat": -32.1422,
+      "lng": 115.8485,
+      "phone": "08 6174 6000"
+    },
+    {
+      "id": "ucc-joondalup",
+      "name": "St John Urgent Care Joondalup",
+      "type": "urgent_care_clinic",
+      "address": "Joondalup Gate, 21 Joondalup Drive, Edgewater WA 6027",
+      "lat": -31.7538,
+      "lng": 115.7704,
+      "phone": "08 9400 7000"
+    },
+    {
+      "id": "ucc-midland",
+      "name": "St John Urgent Care Midland",
+      "type": "urgent_care_clinic",
+      "address": "Building 2, Unit 6-7, 8 Clayton Street, Midland WA 6056",
+      "lat": -31.889,
+      "lng": 116.0108,
+      "phone": "08 9260 5600"
+    },
+    {
+      "id": "ucc-osborne-park",
+      "name": "St John Urgent Care Osborne Park",
+      "type": "urgent_care_clinic",
+      "address": "435 Scarborough Beach Road, Osborne Park WA 6017",
+      "lat": -31.903,
+      "lng": 115.8109,
+      "phone": "08 9267 8600"
+    },
+    {
+      "id": "ucc-kelmscott",
+      "name": "St John Urgent Care Kelmscott",
+      "type": "urgent_care_clinic",
+      "address": "3043 Albany Highway, Kelmscott WA 6111",
+      "lat": -32.1243,
+      "lng": 116.0183,
+      "phone": "08 9334 6800"
+    },
+    {
+      "id": "gp-st-john-armadale",
+      "name": "St John General Practice Armadale",
+      "type": "gp",
+      "address": "Shop 62/63, 10 Orchard Avenue, Armadale WA 6112",
+      "lat": -32.1498,
+      "lng": 116.0159,
+      "phone": "08 9399 0909"
+    },
+    {
+      "id": "gp-st-john-cannington",
+      "name": "St John General Practice Cannington",
+      "type": "gp",
+      "address": "1472 Albany Highway, Beckenham WA 6107",
+      "lat": -32.0183,
+      "lng": 115.9383,
+      "phone": "08 9350 8000"
+    },
+    {
+      "id": "gp-st-john-cockburn",
+      "name": "St John General Practice Cockburn",
+      "type": "gp",
+      "address": "Cockburn Gateway Shopping Centre, 816 Beeliar Drive, Success WA 6164",
+      "lat": -32.1422,
+      "lng": 115.8485,
+      "phone": "08 6174 6000"
+    },
+    {
+      "id": "gp-st-john-joondalup",
+      "name": "St John General Practice Joondalup",
+      "type": "gp",
+      "address": "Joondalup Gate, 21 Joondalup Drive, Edgewater WA 6027",
+      "lat": -31.7538,
+      "lng": 115.7704,
+      "phone": "08 9400 7000"
+    },
+    {
+      "id": "gp-st-john-midland",
+      "name": "St John General Practice Midland",
+      "type": "gp",
+      "address": "Building 2, Unit 6-7, 8 Clayton Street, Midland WA 6056",
+      "lat": -31.889,
+      "lng": 116.0108,
+      "phone": "08 9260 5600"
+    },
+    {
+      "id": "gp-st-john-osborne-park",
+      "name": "St John General Practice Osborne Park",
+      "type": "gp",
+      "address": "435 Scarborough Beach Road, Osborne Park WA 6017",
+      "lat": -31.903,
+      "lng": 115.8109,
+      "phone": "08 9267 8600"
+    },
+    {
+      "id": "pharmacy-chemist-warehouse-perth-city-centre",
+      "name": "Chemist Warehouse Perth City Centre",
+      "type": "pharmacy",
+      "address": "Shop 25A, 580 Hay Street, Perth WA 6000",
+      "lat": -31.953,
+      "lng": 115.8587,
+      "phone": "08 6147 5448"
+    },
+    {
+      "id": "pharmacy-chemist-warehouse-perth",
+      "name": "Chemist Warehouse Perth",
+      "type": "pharmacy",
+      "address": "1/109 Murray Street, Perth WA 6000",
+      "lat": -31.9527,
+      "lng": 115.8605,
+      "phone": "08 9325 7948"
+    },
+    {
+      "id": "pharmacy-777-perth-city",
+      "name": "Pharmacy 777 Perth City",
+      "type": "pharmacy",
+      "address": "Gledden Building, Lot 3, 731 Hay Street, Perth WA 6000",
+      "lat": -31.9522,
+      "lng": 115.8588,
+      "phone": "08 9321 6411"
+    },
+    {
+      "id": "pharmacy-priceline-rokeby-road",
+      "name": "Priceline Pharmacy Rokeby Road",
+      "type": "pharmacy",
+      "address": "24 Rokeby Road, Subiaco WA 6008",
+      "lat": -31.9483,
+      "lng": 115.8243,
+      "phone": "08 6380 1000"
+    },
+    {
+      "id": "pharmacy-subiaco-7-day-chemist",
+      "name": "Subiaco 7 Day Chemist",
+      "type": "pharmacy",
+      "address": "157 Rokeby Road, Subiaco WA 6008",
+      "lat": -31.9476,
+      "lng": 115.8237,
+      "phone": "08 9381 3099"
+    },
+    {
+      "id": "pharmacy-priceline-east-vic-park",
+      "name": "Priceline Pharmacy East Victoria Park",
+      "type": "pharmacy",
+      "address": "Unit 4, 779 Albany Highway, East Victoria Park WA 6101",
+      "lat": -31.9865,
+      "lng": 115.9029,
+      "phone": "08 9470 6644"
+    },
+    {
+      "id": "pharmacy-777-south-perth",
+      "name": "Pharmacy 777 South Perth",
+      "type": "pharmacy",
+      "address": "143 Canning Highway, South Perth WA 6151",
+      "lat": -31.9871,
+      "lng": 115.8707,
+      "phone": "08 9367 6200"
+    },
+    {
+      "id": "pharmacy-777-east-perth",
+      "name": "Pharmacy 777 East Perth",
+      "type": "pharmacy",
+      "address": "Shop 3, 81-95 Royal Street, East Perth WA 6004",
+      "lat": -31.96,
+      "lng": 115.8745,
+      "phone": "08 9221 1311"
+    },
+    {
+      "id": "pharmacy-terrywhite-rivervale",
+      "name": "TerryWhite Chemmart Rivervale",
+      "type": "pharmacy",
+      "address": "Rivervale East PO, 118 Kooyong Road, Rivervale WA 6103",
+      "lat": -31.9551,
+      "lng": 115.9052,
+      "phone": "08 9472 4200"
+    }
+  ]
+}
