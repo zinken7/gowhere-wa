@@ -19,7 +19,7 @@ You are a structured intake classifier for an Australian healthcare navigation a
 
 Your job is navigation classification only.
 You are not diagnosing.
-You must use only the provided transcript and priorSignals.
+You must use only the transcript, priorSignals, and followUpPass (when provided).
 
 Return exactly one JSON object matching the schema.
 Do not output markdown.
@@ -27,20 +27,26 @@ Do not output code fences.
 Do not output extra keys.
 Do not output explanations outside JSON.
 
+Unclear-input policy (critical):
+- If the text is nonsense, gibberish, too vague, contradictory, or not enough to choose a safe care setting, do NOT guess "gp" or any destination.
+- Use classification "follow_up" with suggestedDestination "unknown" and list specific missingInfo items the user should answer.
+- If you cannot responsibly infer a destination, use suggestedDestination "unknown" — never route low-quality text to "gp" by default.
+- The numeric "confidence" field is required by schema only; it is NOT used for routing decisions downstream.
+
 Classification policy:
 - emergency: clear emergency red flags or immediate danger
-- confirm: same-day concern, unclear severity, missing key details, or uncertainty between urgent options
-- follow_up: mild, stable, routine, chronic, administrative, or clearly non-urgent concerns
+- confirm: enough concrete detail to suggest a plausible non-emergency routing destination AND missingInfo is empty
+- follow_up: need more detail, routine/low-urgency framing, OR unclear/unsafe to route yet
 
 Safety policy:
 - If severe chest pain, trouble breathing, stroke-like neurologic symptoms, severe bleeding, collapse, seizure, unconsciousness, suicidal intent, severe allergic reaction, or major trauma are present, classification must be "emergency".
-- If unsure between "follow_up" and "confirm", choose "confirm".
+- If unsure between "follow_up" and routing to "gp", choose "follow_up" with unknown destination rather than a false GP route.
 - Do not invent symptoms.
 - Do not give a diagnosis.
 - suggestedDestination is only a routing hint: "ed" | "urgent_care_clinic" | "gp" | "unknown".
 - Keep summary short, factual, and non-diagnostic.
 - Arrays must always be present.
-- confidence must be a number from 0 to 1.
+- confidence: number 0 to 1 (schema compatibility only).
 
 Few-shot examples:
 
@@ -57,7 +63,7 @@ Output:
   "extractedSymptoms": ["chest pain", "shortness of breath"],
   "missingInfo": [],
   "suggestedDestination": "ed",
-  "confidence": 0.98
+  "confidence": 0.5
 }
 
 Input:
@@ -71,9 +77,9 @@ Output:
   "summary": "Fever and ear pain may need same-day assessment.",
   "urgencySignals": ["fever"],
   "extractedSymptoms": ["fever", "ear pain"],
-  "missingInfo": ["age details", "severity", "red flags"],
+  "missingInfo": [],
   "suggestedDestination": "urgent_care_clinic",
-  "confidence": 0.78
+  "confidence": 0.5
 }
 
 Input:
@@ -89,7 +95,7 @@ Output:
   "extractedSymptoms": [],
   "missingInfo": [],
   "suggestedDestination": "gp",
-  "confidence": 0.90
+  "confidence": 0.5
 }
 
 Input:
@@ -105,7 +111,7 @@ Output:
   "extractedSymptoms": ["sore throat"],
   "missingInfo": [],
   "suggestedDestination": "gp",
-  "confidence": 0.82
+  "confidence": 0.5
 }
 
 Input:
@@ -115,13 +121,13 @@ Input:
 }
 Output:
 {
-  "classification": "confirm",
-  "summary": "Acute stomach pain with vomiting may need urgent assessment.",
+  "classification": "follow_up",
+  "summary": "Acute stomach pain with vomiting may need urgent assessment; more detail needed.",
   "urgencySignals": ["vomiting", "acute pain"],
   "extractedSymptoms": ["stomach pain", "vomiting"],
   "missingInfo": ["severity", "blood in vomit", "hydration concerns"],
   "suggestedDestination": "urgent_care_clinic",
-  "confidence": 0.76
+  "confidence": 0.5
 }
 
 Input:
@@ -137,7 +143,71 @@ Output:
   "extractedSymptoms": ["face drooping", "arm weakness"],
   "missingInfo": [],
   "suggestedDestination": "ed",
-  "confidence": 0.99
+  "confidence": 0.5
+}
+
+Input:
+{
+  "transcript": "banana cloud running quickly",
+  "priorSignals": null
+}
+Output:
+{
+  "classification": "follow_up",
+  "summary": "Input is not clear enough to suggest a care setting.",
+  "urgencySignals": [],
+  "extractedSymptoms": [],
+  "missingInfo": ["What health problem are you having?", "Where on the body?", "How long?", "How severe?"],
+  "suggestedDestination": "unknown",
+  "confidence": 0.5
+}
+
+Input:
+{
+  "transcript": "help me",
+  "priorSignals": null
+}
+Output:
+{
+  "classification": "follow_up",
+  "summary": "Not enough detail to route safely.",
+  "urgencySignals": [],
+  "extractedSymptoms": [],
+  "missingInfo": ["What symptoms or concern?", "Urgent or ongoing?", "Any red flags like chest pain, breathing trouble, severe bleeding?"],
+  "suggestedDestination": "unknown",
+  "confidence": 0.5
+}
+
+Input:
+{
+  "transcript": "not feeling right",
+  "priorSignals": null
+}
+Output:
+{
+  "classification": "follow_up",
+  "summary": "Vague symptoms — need more specifics before routing.",
+  "urgencySignals": [],
+  "extractedSymptoms": [],
+  "missingInfo": ["Main symptoms", "Duration", "Severity", "Any emergency warning signs?"],
+  "suggestedDestination": "unknown",
+  "confidence": 0.5
+}
+
+Input:
+{
+  "transcript": "pain maybe, not sure, somewhere",
+  "priorSignals": null
+}
+Output:
+{
+  "classification": "follow_up",
+  "summary": "Location and nature of pain are unclear.",
+  "urgencySignals": [],
+  "extractedSymptoms": [],
+  "missingInfo": ["Where is the pain?", "What type of pain?", "Since when?", "Anything make it worse?"],
+  "suggestedDestination": "unknown",
+  "confidence": 0.5
 }
 `
 
@@ -169,7 +239,11 @@ const responseSchema = {
       format: 'enum',
       enum: ['ed', 'urgent_care_clinic', 'gp', 'unknown'] as string[]
     },
-    confidence: { type: SchemaType.NUMBER, description: '0–1' }
+    confidence: {
+      type: SchemaType.NUMBER,
+      description:
+        'Compat only: any number 0–1. Not a native Gemini confidence score; server mapping ignores it for routing.'
+    }
   },
   required: [
     'classification',
@@ -270,6 +344,7 @@ export async function classifyIntakeWithGemini(
   priorSignals: Partial<TriageSignals> | undefined,
   apiKey: string,
   modelId: string,
+  followUpPass: number,
   log: IntakeLogger
 ): Promise<GeminiClassifyOutcome> {
   const key = apiKey.trim()
@@ -302,7 +377,8 @@ export async function classifyIntakeWithGemini(
     ? JSON.stringify(priorSignals)
     : 'null'
 
-  const userPrompt = `priorSignals (JSON, may be null):\n${priorJson}\n\ntranscript:\n${transcript}`
+  const pass = Number.isFinite(followUpPass) ? Math.max(0, Math.floor(followUpPass)) : 0
+  const userPrompt = `followUpPass (0 = first intake analysis; 1+ = user already submitted clarification answers this session):\n${pass}\n\npriorSignals (JSON, may be null):\n${priorJson}\n\ntranscript:\n${transcript}`
 
   log.stage('intake_gemini_attempt_starting', {
     model: modelName,

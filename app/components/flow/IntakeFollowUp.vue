@@ -1,9 +1,12 @@
 <script setup lang="ts">
+import { reactive } from 'vue'
 import type { IntakeQuestion } from '~~/shared/intake-types'
+import { INTAKE_TERMINAL_QUESTION_ID } from '~~/shared/constants'
 
 const props = defineProps<{
   questions: IntakeQuestion[]
-  transcript: string
+  /** First transcript this session; combined with answers for re-analysis. */
+  originalTranscript: string
 }>()
 
 const emit = defineEmits<{
@@ -11,8 +14,7 @@ const emit = defineEmits<{
   back: []
 }>()
 
-/** Per-question answers (options or free text), keyed by stable question id. */
-const answers = ref<Record<string, string>>({})
+const answers = reactive<Record<string, string>>({})
 
 function qKey(q: IntakeQuestion, index: number): string {
   const id = q.id?.trim()
@@ -20,33 +22,53 @@ function qKey(q: IntakeQuestion, index: number): string {
 }
 
 function setAnswer(key: string, value: string) {
-  answers.value[key] = value
+  answers[key] = value
 }
 
 function selectOption(questionId: string, option: string) {
-  answers.value[questionId] = option
+  answers[questionId] = option
 }
 
 function submit() {
-  const parts: string[] = []
+  if (isTerminal.value) {
+    return
+  }
+  const lines: string[] = []
+  const root = props.originalTranscript.trim()
+  if (root.length > 0) {
+    lines.push(`Original concern:\n${root}`)
+  }
 
+  const detailLines: string[] = []
   for (let i = 0; i < props.questions.length; i++) {
     const q = props.questions[i]!
     const key = qKey(q, i)
-    const answer = answers.value[key]?.trim()
+    const answer = answers[key]?.trim()
     if (answer) {
-      parts.push(answer)
+      detailLines.push(`${q.text}: ${answer}`)
     }
   }
+  if (detailLines.length > 0) {
+    lines.push(`Follow-up details:\n${detailLines.join('\n')}`)
+  }
 
-  const combined = `${props.transcript}. ${parts.join('. ')}`
+  const combined = lines.join('\n\n')
   emit('answer', combined)
 }
 
+const isTerminal = computed(
+  () =>
+    props.questions.length === 1
+    && props.questions[0]?.id === INTAKE_TERMINAL_QUESTION_ID
+)
+
 const allAnswered = computed(() => {
+  if (isTerminal.value) {
+    return false
+  }
   return props.questions.every((q, i) => {
     const key = qKey(q, i)
-    return Boolean(answers.value[key]?.trim())
+    return Boolean(answers[key]?.trim())
   })
 })
 </script>
@@ -62,7 +84,19 @@ const allAnswered = computed(() => {
       </p>
     </template>
 
-    <div class="space-y-5">
+    <UAlert
+      v-if="isTerminal"
+      color="info"
+      variant="subtle"
+      title="We need a different next step"
+      :description="questions[0]?.text"
+      class="mb-4"
+    />
+
+    <div
+      v-else
+      class="space-y-5"
+    >
       <div
         v-for="(q, idx) in questions"
         :key="qKey(q, idx)"
@@ -71,7 +105,6 @@ const allAnswered = computed(() => {
           {{ q.text }}
         </p>
 
-        <!-- Option buttons -->
         <div
           v-if="q.options"
           class="grid grid-cols-1 gap-2"
@@ -89,7 +122,6 @@ const allAnswered = computed(() => {
           </UButton>
         </div>
 
-        <!-- Free text if no options — one value per question (not a shared ref) -->
         <UTextarea
           v-else
           :model-value="answers[qKey(q, idx)] ?? ''"
@@ -110,6 +142,7 @@ const allAnswered = computed(() => {
           Back
         </UButton>
         <UButton
+          v-if="!isTerminal"
           class="flex-1"
           trailing-icon="i-lucide-arrow-right"
           size="lg"

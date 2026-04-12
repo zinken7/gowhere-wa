@@ -5,6 +5,7 @@
  */
 import type { IntakeResponse, IntakeQuestion } from '~~/shared/intake-types'
 import type { TriageSignals } from '~~/shared/triage-types'
+import { MAX_INTAKE_FOLLOW_UP_PASS } from '~~/shared/constants'
 import { messageFromFetchError } from '~/utils/fetch-error'
 
 export type IntakeStep
@@ -19,7 +20,16 @@ export function useIntakeFlow() {
   const step = ref<IntakeStep>('entry')
   const consentGiven = ref(false)
 
-  // Transcript
+  /** First user transcript this session (not overwritten by combined follow-up text). */
+  const sessionRootTranscript = ref('')
+
+  /** Last follow-up round index successfully sent to the API (see MAX_INTAKE_FOLLOW_UP_PASS). */
+  const followUpPassSent = ref(0)
+
+  /** Bumps when we receive a new follow_up payload so the follow-up form remounts with clean fields. */
+  const followUpRenderKey = ref(0)
+
+  // Transcript shown / last full text sent for analysis
   const transcript = ref('')
 
   // Analysis result
@@ -37,7 +47,7 @@ export function useIntakeFlow() {
   // Emergency entry (direct button)
   const entryEmergency = ref(false)
 
-  async function analyzeTranscript(text: string) {
+  async function analyzeTranscript(text: string, opts?: { fromFollowUp?: boolean }) {
     const trimmed = text.trim()
     if (!trimmed) {
       return
@@ -45,6 +55,21 @@ export function useIntakeFlow() {
     if (analyzeInFlight.value) {
       return
     }
+
+    let roundToSend = 0
+    if (!opts?.fromFollowUp) {
+      sessionRootTranscript.value = trimmed
+      followUpPassSent.value = 0
+      roundToSend = 0
+    } else {
+      roundToSend = followUpPassSent.value + 1
+      if (roundToSend > MAX_INTAKE_FOLLOW_UP_PASS) {
+        analyzeError.value
+          = 'Maximum clarification steps reached. For advice, call Healthdirect on 1800 022 222 (24/7), see your GP, or call Triple Zero (000) in an emergency. You can start again below.'
+        return
+      }
+    }
+
     analyzeInFlight.value = true
     step.value = 'analyzing'
     analyzeStatus.value = 'loading'
@@ -59,12 +84,17 @@ export function useIntakeFlow() {
           body: {
             transcript: trimmed,
             consentGiven: consentGiven.value,
+            followUpRound: roundToSend,
             priorSignals: Object.keys(partialSignals.value).length > 0
               ? partialSignals.value
               : undefined
           }
         }
       )
+
+      if (opts?.fromFollowUp) {
+        followUpPassSent.value = roundToSend
+      }
 
       analyzeStatus.value = 'idle'
       handleResult(result)
@@ -92,6 +122,7 @@ export function useIntakeFlow() {
         break
 
       case 'follow_up':
+        followUpRenderKey.value += 1
         questions.value = result.questions
         partialSignals.value = result.partialSignals
         step.value = 'follow_up'
@@ -121,6 +152,9 @@ export function useIntakeFlow() {
         break
       case 'confirm':
       case 'follow_up':
+        sessionRootTranscript.value = ''
+        followUpPassSent.value = 0
+        analyzeError.value = ''
         step.value = 'entry'
         break
       case 'analyzing':
@@ -135,6 +169,9 @@ export function useIntakeFlow() {
   function reset() {
     step.value = 'entry'
     consentGiven.value = false
+    sessionRootTranscript.value = ''
+    followUpPassSent.value = 0
+    followUpRenderKey.value = 0
     transcript.value = ''
     summary.value = ''
     signals.value = null
@@ -149,6 +186,9 @@ export function useIntakeFlow() {
   return {
     step,
     consentGiven,
+    sessionRootTranscript,
+    followUpPassSent,
+    followUpRenderKey,
     transcript,
     summary,
     signals,

@@ -12,6 +12,11 @@ export interface IntakeRequest {
   consentGiven: boolean
   /** Optional prior context if this is a follow-up round */
   priorSignals?: Partial<TriageSignals>
+  /**
+   * 0 = first analysis; increment each time the user submits follow-up answers and the client re-calls analyze.
+   * Server may return a terminal clarification when above the configured max (see shared/constants.ts).
+   */
+  followUpRound?: number
 }
 
 /**

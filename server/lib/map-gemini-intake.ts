@@ -1,6 +1,8 @@
 /**
  * Maps validated {@link GeminiIntakeClassification} to the app's {@link IntakeResponse} union.
  * Does not diagnose — only shapes navigation-oriented fields for triage.
+ *
+ * Never uses `confidence` for routing (it is model-generated JSON only, not a native API score).
  */
 import type {
   IntakeConfirm,
@@ -43,7 +45,8 @@ function inferRedFlags(g: GeminiIntakeClassification): boolean {
   return /\b(stroke|bleed|unconscious|can't breathe|not breathing|severe chest|anaphylaxis|suicid)\b/.test(blob)
 }
 
-function severityFromGemini(g: GeminiIntakeClassification): Severity {
+/** Severity from destination hints only — not from `confidence`. */
+function severityFromDestination(g: GeminiIntakeClassification): Severity {
   if (g.suggestedDestination === 'ed') {
     return 'severe'
   }
@@ -68,7 +71,7 @@ function buildPartialSignals(
     ...prior,
     persona: prior?.persona ?? 'self',
     categoryKey: prior?.categoryKey ?? categoryKey,
-    severity: prior?.severity ?? severityFromGemini(g),
+    severity: prior?.severity ?? severityFromDestination(g),
     redFlags: prior?.redFlags ?? inferRedFlags(g),
     canWait: prior?.canWait ?? g.suggestedDestination !== 'ed',
     afterHours: prior?.afterHours ?? false,
@@ -95,6 +98,17 @@ function followUpQuestions(g: GeminiIntakeClassification): IntakeQuestion[] {
   ]
 }
 
+function toFollowUp(
+  g: GeminiIntakeClassification,
+  priorSignals?: Partial<TriageSignals>
+): IntakeFollowUp {
+  return {
+    type: 'follow_up',
+    questions: followUpQuestions(g),
+    partialSignals: buildPartialSignals(g, priorSignals)
+  } satisfies IntakeFollowUp
+}
+
 export function mapGeminiToIntakeResponse(
   g: GeminiIntakeClassification,
   priorSignals?: Partial<TriageSignals>
@@ -111,11 +125,19 @@ export function mapGeminiToIntakeResponse(
   }
 
   if (g.classification === 'follow_up') {
-    return {
-      type: 'follow_up',
-      questions: followUpQuestions(g),
-      partialSignals: buildPartialSignals(g, priorSignals)
-    } satisfies IntakeFollowUp
+    return toFollowUp(g, priorSignals)
+  }
+
+  /**
+   * Unclear / non-actionable routing: never send users to a specific destination (e.g. GP) on unknown.
+   * Missing details: ask before confirming a route.
+   */
+  if (g.suggestedDestination === 'unknown') {
+    return toFollowUp(g, priorSignals)
+  }
+
+  if (g.missingInfo.length > 0) {
+    return toFollowUp(g, priorSignals)
   }
 
   const categoryKey = inferCategoryKey(g)
@@ -123,10 +145,10 @@ export function mapGeminiToIntakeResponse(
     persona: priorSignals?.persona ?? 'self',
     categoryKey: priorSignals?.categoryKey ?? categoryKey,
     redFlags: inferRedFlags(g),
-    severity: priorSignals?.severity ?? severityFromGemini(g),
+    severity: priorSignals?.severity ?? severityFromDestination(g),
     canWait:
       priorSignals?.canWait
-      ?? (g.suggestedDestination !== 'ed' && g.suggestedDestination !== 'unknown'),
+      ?? g.suggestedDestination !== 'ed',
     afterHours: priorSignals?.afterHours ?? false,
     medicationOrMinorIssue:
       priorSignals?.medicationOrMinorIssue

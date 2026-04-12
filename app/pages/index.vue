@@ -3,9 +3,12 @@ const {
   step,
   consentGiven,
   transcript,
+  sessionRootTranscript,
+  followUpRenderKey,
   summary,
   signals,
   questions,
+  analyzeError,
   entryEmergency,
   analyzeTranscript,
   confirmAndProceed,
@@ -94,7 +97,7 @@ function onConfirm() {
 }
 
 function onFollowUpAnswer(text: string) {
-  analyzeTranscript(text)
+  analyzeTranscript(text, { fromFollowUp: true })
 }
 
 async function retryRecommendation() {
@@ -180,13 +183,24 @@ const STEP_LABELS: Partial<Record<string, string>> = {
     />
 
     <!-- 4. Follow-up — need more info -->
-    <IntakeFollowUp
+    <div
       v-else-if="step === 'follow_up'"
-      :questions="questions"
-      :transcript="transcript"
-      @answer="onFollowUpAnswer"
-      @back="back()"
-    />
+      class="space-y-4"
+    >
+      <UAlert
+        v-if="analyzeError"
+        color="warning"
+        variant="subtle"
+        :title="analyzeError"
+      />
+      <IntakeFollowUp
+        :key="`fu-${followUpRenderKey}`"
+        :questions="questions"
+        :original-transcript="sessionRootTranscript"
+        @answer="onFollowUpAnswer"
+        @back="back()"
+      />
+    </div>
 
     <!-- 5. Recommendation -->
     <div

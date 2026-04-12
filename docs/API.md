@@ -37,6 +37,8 @@
 
 **Hybrid classifier (Gemini + fallback):** When **`NUXT_GEMINI_API_KEY`** is set (non-empty, server-only), Nitro first asks **Gemini** for a **strict JSON** navigation classification (default model **`gemini-2.5-flash`**, overridable via **`NUXT_GEMINI_MODEL`** — e.g. `gemini-2.5-flash-lite`). Temperature is low; output is not diagnostic. If the key is **unset or empty**, Nitro skips Gemini and uses the keyword parser only. If the key is set but the call **fails** (timeout, HTTP error, invalid JSON, schema mismatch, or mapping error), the handler **silently** falls back to the deterministic **keyword / pattern** parser in `server/lib/intake-parser.ts` (`analyzeIntake`). The HTTP response shape is always the same discriminated union below; clients never receive raw model errors or provider diagnostics.
 
+**Clarification vs routing:** Unclear or nonsense input should yield **`follow_up`** (or non-routing clarification), not a confident **GP** path. The Gemini JSON may include a numeric **`confidence`** field for schema compatibility only — it is **not** a native Gemini API confidence score and is **not** used for routing. **`followUpRound`** supports iterative re-analysis as the user adds detail.
+
 **Request body:**
 
 | Field | Type | Required | Notes |
@@ -44,6 +46,7 @@
 | `transcript` | string | Yes | Free-form text from voice or keyboard (max 2000 chars) |
 | `consentGiven` | boolean | Yes | Must be `true` |
 | `priorSignals` | object | No | Partial signals from a previous follow-up round |
+| `followUpRound` | number | No | `0` = first analysis; increment each time the client re-posts after follow-up answers (capped server-side; see `MAX_INTAKE_FOLLOW_UP_PASS` in `shared/constants.ts`). |
 
 **Success:** `200 OK` — discriminated union (`type` field):
 

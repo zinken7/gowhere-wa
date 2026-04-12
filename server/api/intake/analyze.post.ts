@@ -15,8 +15,10 @@ import {
   resolveIntakeVerbose,
   safeTranscriptPreview
 } from '../../lib/intake-logger'
+import { MAX_INTAKE_FOLLOW_UP_PASS } from '../../../shared/constants'
 import type { IntakeRequest, IntakeResponse } from '../../../shared/intake-types'
 import type { TriageSignals } from '../../../shared/triage-types'
+import { buildTerminalMaxFollowUpResponse } from '../../lib/intake-terminal-response'
 
 export default defineEventHandler(async (event) => {
   const started = Date.now()
@@ -79,17 +81,40 @@ export default defineEventHandler(async (event) => {
 
     const transcript = body.transcript.trim().slice(0, 2000)
     const priorSignals = (body.priorSignals ?? undefined) as Partial<TriageSignals> | undefined
+    const followUpPass
+      = typeof body.followUpRound === 'number' && Number.isFinite(body.followUpRound)
+        ? Math.max(0, Math.floor(body.followUpRound))
+        : 0
+
+    const geminiModel = resolveGeminiIntakeModel(
+      (config as { geminiModel?: string }).geminiModel
+    )
+
+    if (followUpPass > MAX_INTAKE_FOLLOW_UP_PASS) {
+      log.stage('intake_follow_up_cap', { followUpPass, max: MAX_INTAKE_FOLLOW_UP_PASS })
+      const out: IntakeResponse = buildTerminalMaxFollowUpResponse(priorSignals)
+      log.summary({
+        outcome: 'ok',
+        usedGemini: false,
+        geminiAttempted: false,
+        fallbackUsed: false,
+        fallbackReason: null,
+        geminiModel,
+        finalClassification: out.type,
+        followUpCap: true,
+        durationMs: durationMs()
+      })
+      return out
+    }
 
     log.stage('intake_transcript_normalized', {
       transcriptLength: transcript.length,
       transcriptPreview: safeTranscriptPreview(transcript),
-      priorSignalsPresent: Boolean(priorSignals && Object.keys(priorSignals).length > 0)
+      priorSignalsPresent: Boolean(priorSignals && Object.keys(priorSignals).length > 0),
+      followUpPass
     })
 
     const geminiKey = typeof config.geminiApiKey === 'string' ? config.geminiApiKey.trim() : ''
-    const geminiModel = resolveGeminiIntakeModel(
-      (config as { geminiModel?: string }).geminiModel
-    )
 
     log.stage('intake_gemini_config', {
       model: geminiModel,
@@ -124,6 +149,7 @@ export default defineEventHandler(async (event) => {
       priorSignals,
       geminiKey,
       geminiModel,
+      followUpPass,
       log
     )
 

@@ -81,6 +81,35 @@ const AFTER_HOURS_PATTERNS = [
   /\b(after hours|evening|night|weekend|sunday|saturday|late|midnight|closed)\b/i
 ]
 
+/* ─── Vague / low-information heuristic (keyword path only) ─── */
+
+function hasClinicalHint(text: string): boolean {
+  if (EMERGENCY_PATTERNS.some(p => p.test(text))) {
+    return true
+  }
+  if (CATEGORY_MAP.some(c => c.pattern.test(text))) {
+    return true
+  }
+  return /\b(pain|hurt|ache|sick|fever|cough|nausea|vomit|bleed|breath|dizzy|rash|swell|unwell|head|throat|ear|eye|stomach|back|doctor|gp|clinic|hospital)\b/i.test(
+    text
+  )
+}
+
+function isLikelyNonClinicalOrTooVague(text: string): boolean {
+  const t = text.trim()
+  if (t.length < 3) {
+    return true
+  }
+  const words = t.split(/\s+/).filter(Boolean)
+  if (words.length <= 2) {
+    return !hasClinicalHint(t)
+  }
+  if (words.length < 8 && !hasClinicalHint(t)) {
+    return true
+  }
+  return false
+}
+
 /* ─── Main parser ─── */
 
 export function analyzeIntake(
@@ -103,6 +132,22 @@ export function analyzeIntake(
         reason: 'Your description suggests you may need immediate emergency help. If life-threatening, call Triple Zero (000) now.'
       } satisfies IntakeEmergency
     }
+  }
+
+  // 1b. Very short or non-clinical text — clarify instead of defaulting to a care route
+  if (isLikelyNonClinicalOrTooVague(text)) {
+    return followUp(priorSignals ?? {}, [
+      {
+        id: 'vague-main',
+        text: 'What is the main health problem or symptom you want help with?',
+        options: undefined
+      },
+      {
+        id: 'vague-when',
+        text: 'Roughly when did this start, or when did it get worse?',
+        options: undefined
+      }
+    ])
   }
 
   // 2. Extract signals from text

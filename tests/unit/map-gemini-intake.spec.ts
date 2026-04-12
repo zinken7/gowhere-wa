@@ -32,7 +32,7 @@ describe('mapGeminiToIntakeResponse', () => {
     }
   })
 
-  it('maps confirm with TriageSignals', () => {
+  it('maps confirm with TriageSignals when routing is actionable and nothing is missing', () => {
     const r = mapGeminiToIntakeResponse(
       g({
         classification: 'confirm',
@@ -40,7 +40,7 @@ describe('mapGeminiToIntakeResponse', () => {
         urgencySignals: ['fever'],
         extractedSymptoms: ['fever', 'ear pain'],
         suggestedDestination: 'urgent_care_clinic',
-        missingInfo: ['age']
+        missingInfo: []
       })
     )
     expect(r.type).toBe('confirm')
@@ -49,6 +49,30 @@ describe('mapGeminiToIntakeResponse', () => {
       expect(r.signals.redFlags).toBeDefined()
       expect(typeof r.signals.canWait).toBe('boolean')
     }
+  })
+
+  it('maps confirm with missingInfo to follow_up (clarification before routing)', () => {
+    const r = mapGeminiToIntakeResponse(
+      g({
+        classification: 'confirm',
+        summary: 'Needs more detail.',
+        suggestedDestination: 'gp',
+        missingInfo: ['age', 'severity']
+      })
+    )
+    expect(r.type).toBe('follow_up')
+  })
+
+  it('maps unknown suggestedDestination to follow_up', () => {
+    const r = mapGeminiToIntakeResponse(
+      g({
+        classification: 'confirm',
+        summary: 'Unclear.',
+        missingInfo: [],
+        suggestedDestination: 'unknown'
+      })
+    )
+    expect(r.type).toBe('follow_up')
   })
 
   it('maps follow_up with questions from missingInfo', () => {
