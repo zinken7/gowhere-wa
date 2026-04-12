@@ -11,35 +11,43 @@ const emit = defineEmits<{
   back: []
 }>()
 
+/** Per-question answers (options or free text), keyed by stable question id. */
 const answers = ref<Record<string, string>>({})
-const freeText = ref('')
+
+function qKey(q: IntakeQuestion, index: number): string {
+  const id = q.id?.trim()
+  return id && id.length > 0 ? id : `follow-up-${index}`
+}
+
+function setAnswer(key: string, value: string) {
+  answers.value[key] = value
+}
 
 function selectOption(questionId: string, option: string) {
   answers.value[questionId] = option
 }
 
 function submit() {
-  // Combine answers into a text to re-analyze
   const parts: string[] = []
 
-  for (const q of props.questions) {
-    const answer = answers.value[q.id]
+  for (let i = 0; i < props.questions.length; i++) {
+    const q = props.questions[i]!
+    const key = qKey(q, i)
+    const answer = answers.value[key]?.trim()
     if (answer) {
       parts.push(answer)
     }
   }
 
-  if (freeText.value.trim()) {
-    parts.push(freeText.value.trim())
-  }
-
-  // Append to original transcript for richer context
   const combined = `${props.transcript}. ${parts.join('. ')}`
   emit('answer', combined)
 }
 
 const allAnswered = computed(() => {
-  return props.questions.every(q => answers.value[q.id])
+  return props.questions.every((q, i) => {
+    const key = qKey(q, i)
+    return Boolean(answers.value[key]?.trim())
+  })
 })
 </script>
 
@@ -56,8 +64,8 @@ const allAnswered = computed(() => {
 
     <div class="space-y-5">
       <div
-        v-for="q in questions"
-        :key="q.id"
+        v-for="(q, idx) in questions"
+        :key="qKey(q, idx)"
       >
         <p class="text-sm font-medium mb-2">
           {{ q.text }}
@@ -73,21 +81,22 @@ const allAnswered = computed(() => {
             :key="opt"
             block
             class="justify-start text-left"
-            :variant="answers[q.id] === opt ? 'solid' : 'outline'"
+            :variant="answers[qKey(q, idx)] === opt ? 'solid' : 'outline'"
             size="md"
-            @click="selectOption(q.id, opt)"
+            @click="selectOption(qKey(q, idx), opt)"
           >
             {{ opt }}
           </UButton>
         </div>
 
-        <!-- Free text if no options -->
+        <!-- Free text if no options — one value per question (not a shared ref) -->
         <UTextarea
           v-else
-          v-model="freeText"
+          :model-value="answers[qKey(q, idx)] ?? ''"
           placeholder="Describe…"
           :rows="2"
           autoresize
+          @update:model-value="(v: string) => setAnswer(qKey(q, idx), v)"
         />
       </div>
     </div>
