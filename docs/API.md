@@ -80,6 +80,8 @@
 
 - `400` — invalid body (`INVALID_BODY`), consent not given (`CONSENT_REQUIRED`), or missing transcript (`MISSING_TRANSCRIPT`).
 
+**Server observability (Vercel / Nitro logs):** Each request emits one JSON line with `"event":"intake_request_summary"` (duration, whether Gemini ran, fallback reason, final classification). Optional verbose tracing: set **`INTAKE_DEBUG_LOGS=true`** or **`NUXT_INTAKE_DEBUG_LOGS=true`** or **`NUXT_INTAKE_DEBUG_LOGS`** in runtime config — logs stage events (`intake_request_received`, `intake_gemini_*`, `intake_fallback_*`) without secrets or full transcripts (only length + short preview). Filter logs by `"component":"intake"`.
+
 ---
 
 ## `POST /api/triage/recommend`
