@@ -32,15 +32,24 @@ export function useIntakeFlow() {
   // Status
   const analyzeStatus = ref<'idle' | 'loading' | 'error'>('idle')
   const analyzeError = ref('')
+  const analyzeInFlight = ref(false)
 
   // Emergency entry (direct button)
   const entryEmergency = ref(false)
 
   async function analyzeTranscript(text: string) {
+    const trimmed = text.trim()
+    if (!trimmed) {
+      return
+    }
+    if (analyzeInFlight.value) {
+      return
+    }
+    analyzeInFlight.value = true
     step.value = 'analyzing'
     analyzeStatus.value = 'loading'
     analyzeError.value = ''
-    transcript.value = text
+    transcript.value = trimmed
 
     try {
       const result = await $fetch<IntakeResponse>(
@@ -48,7 +57,7 @@ export function useIntakeFlow() {
         {
           method: 'POST',
           body: {
-            transcript: text,
+            transcript: trimmed,
             consentGiven: consentGiven.value,
             priorSignals: Object.keys(partialSignals.value).length > 0
               ? partialSignals.value
@@ -63,6 +72,8 @@ export function useIntakeFlow() {
       analyzeStatus.value = 'error'
       analyzeError.value = messageFromFetchError(e, 'Could not analyze your input.')
       step.value = 'entry'
+    } finally {
+      analyzeInFlight.value = false
     }
   }
 
