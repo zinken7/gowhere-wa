@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import type { VoiceSessionResult } from '~/composables/useVoiceCapture'
+
 const consentGiven = defineModel<boolean>('consentGiven', { required: true })
 
 const emit = defineEmits<{
@@ -12,14 +14,40 @@ const {
   errorMessage: voiceError,
   start: startVoice,
   stop: stopVoice,
+  cancel: cancelVoice,
   setManualTranscript,
   reset: resetVoice
 } = useVoiceCapture()
 
 const textInput = ref('')
 const showTextInput = ref(false)
+/** Shown when user stops without usable speech (not the same as mic errors). */
+const emptyCaptureHint = ref('')
 
-/** Primary CTA handler — starts voice or shows text fallback */
+function handleVoiceResult(result: VoiceSessionResult) {
+  emptyCaptureHint.value = ''
+  switch (result.kind) {
+    case 'success':
+      emit('start', result.text)
+      break
+    case 'empty':
+      emptyCaptureHint.value = 'No speech captured. Try again or type instead.'
+      break
+    case 'cancelled':
+      resetVoice()
+      break
+    case 'error':
+      break
+  }
+}
+
+/** Start voice with a single completion callback (no duplicate watch/onend navigation). */
+function beginListening() {
+  emptyCaptureHint.value = ''
+  startVoice(handleVoiceResult)
+}
+
+/** Primary CTA — start voice, or finalize stop (not cancel). */
 function handleCta() {
   if (!consentGiven.value) return
 
@@ -29,10 +57,17 @@ function handleCta() {
   }
 
   if (isSupported.value) {
-    startVoice()
+    beginListening()
   } else {
     showTextInput.value = true
   }
+}
+
+/** Explicit cancel — discard speech and stay on entry. */
+function handleCancelListening() {
+  if (!isListening.value) return
+  emptyCaptureHint.value = ''
+  cancelVoice()
 }
 
 function handleTextSubmit() {
@@ -42,21 +77,17 @@ function handleTextSubmit() {
   emit('start', text)
 }
 
-// Watch for completed voice transcription
-watch(transcript, (val) => {
-  if (val && !isListening.value) {
-    emit('start', val)
-  }
-})
-
 function switchToText() {
-  if (isListening.value) stopVoice()
+  if (isListening.value) {
+    cancelVoice()
+  }
   showTextInput.value = true
 }
 
 function switchToVoice() {
   showTextInput.value = false
   resetVoice()
+  emptyCaptureHint.value = ''
 }
 
 function goToEmergency() {
@@ -84,7 +115,8 @@ function goToEmergency() {
       <svg class="entry-pin" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 130" aria-label="GoWhere">
         <path
           d="M50,0 C77.6,0 100,22.4 100,50 C100,77.6 75,102 56,118 Q50,124 44,118 C25,102 0,77.6 0,50 C0,22.4 22.4,0 50,0 Z"
-          fill="#F97316" />
+          fill="#F97316"
+        />
         <rect x="25" y="45" width="50" height="17.5" rx="4" ry="4" fill="#0F0A07" />
         <rect x="41.5" y="30" width="17.5" height="50" rx="4" ry="4" fill="#0F0A07" />
       </svg>
@@ -98,18 +130,33 @@ function goToEmergency() {
       </p>
 
       <!-- Mic rings area -->
-      <button class="mic-area" :class="{
-        'mic-area--listening': isListening,
-        'mic-area--disabled': !consentGiven
-      }" :disabled="!consentGiven" :aria-label="isListening ? 'Stop recording' : 'Tap microphone to speak'"
-        @click="handleCta">
+      <button
+        class="mic-area"
+        :class="{
+          'mic-area--listening': isListening,
+          'mic-area--disabled': !consentGiven
+        }"
+        :disabled="!consentGiven"
+        :aria-label="isListening ? 'Stop recording' : 'Tap microphone to speak'"
+        @click="handleCta"
+      >
         <span class="mic-ring mic-ring--3" />
         <span class="mic-ring mic-ring--2" />
         <span class="mic-ring mic-ring--1" />
         <span class="mic-core">
           <!-- Mic icon — INLINE SVG so stroke color works -->
-          <svg class="mic-icon" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"
-            fill="none" stroke="#F97316" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <svg
+            class="mic-icon"
+            xmlns="http://www.w3.org/2000/svg"
+            width="24"
+            height="24"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="#F97316"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
             <path d="M12 19v3" />
             <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
             <rect x="9" y="2" width="6" height="13" rx="3" fill="#F97316" />
@@ -121,6 +168,9 @@ function goToEmergency() {
       <p v-if="voiceError" class="entry-error" role="alert">
         {{ voiceError }}
       </p>
+      <p v-if="emptyCaptureHint" class="entry-hint" role="status">
+        {{ emptyCaptureHint }}
+      </p>
     </div>
 
     <!-- ─── Bottom section ─── -->
@@ -129,8 +179,13 @@ function goToEmergency() {
       <div v-if="showTextInput" class="text-fallback">
         <UTextarea v-model="textInput" placeholder="Describe what you're experiencing…" :rows="3" autoresize />
         <div class="text-fallback-actions">
-          <UButton block size="lg" :disabled="!textInput.trim()" trailing-icon="i-lucide-arrow-right"
-            @click="handleTextSubmit">
+          <UButton
+            block
+            size="lg"
+            :disabled="!textInput.trim()"
+            trailing-icon="i-lucide-arrow-right"
+            @click="handleTextSubmit"
+          >
             Analyze
           </UButton>
           <UButton v-if="isSupported" block variant="outline" @click="switchToVoice">
@@ -139,21 +194,39 @@ function goToEmergency() {
         </div>
       </div>
 
-      <!-- Primary CTA button -->
-      <button v-else class="cta-button" :class="{ 'cta-button--disabled': !consentGiven }" :disabled="!consentGiven"
-        @click="handleCta">
-        <template v-if="isListening">
-          Listening… tap to stop
-        </template>
-        <template v-else>
-          Speak now or tap to start
-        </template>
+      <!-- Listening: Stop (finalize) + Cancel (discard) -->
+      <template v-else-if="isListening">
+        <button
+          class="cta-button"
+          type="button"
+          @click="handleCta"
+        >
+          Stop — finish and analyze
+        </button>
+        <button
+          type="button"
+          class="cancel-listen"
+          @click="handleCancelListening"
+        >
+          Cancel
+        </button>
+      </template>
+
+      <!-- Primary CTA button (idle) -->
+      <button
+        v-else
+        class="cta-button"
+        :class="{ 'cta-button--disabled': !consentGiven }"
+        :disabled="!consentGiven"
+        @click="handleCta"
+      >
+        Speak now or tap to start
       </button>
 
       <!-- Type-instead link -->
       <p v-if="!showTextInput && consentGiven && !isListening" class="type-hint">
         or
-        <button class="type-link" @click="switchToText">
+        <button class="type-link" type="button" @click="switchToText">
           type instead
         </button>
       </p>
@@ -249,11 +322,11 @@ function goToEmergency() {
   line-height: 1.1;
   margin: 0 0 0.5rem;
   text-align: center;
-  color: #FFF4EC;
+  color: #fff4ec;
 }
 
 .entry-title-accent {
-  color: #F97316;
+  color: #f97316;
 }
 
 /* Subtitle */
@@ -294,7 +367,6 @@ function goToEmergency() {
 .mic-ring {
   position: absolute;
   border-radius: 50%;
-  /* border: 1.5px solid oklch(0.35 0.01 50 / 0.55); */
   pointer-events: none;
 }
 
@@ -320,12 +392,13 @@ function goToEmergency() {
   height: 7.5rem;
   border-radius: 50%;
   background: oklch(0% 0 0);
-  /* border: 1.5px solid oklch(0.35 0.01 50 / 0.55); */
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 2;
-  transition: background 0.2s, transform 0.15s;
+  transition:
+    background 0.2s,
+    transform 0.15s;
 }
 
 .mic-area:hover:not(:disabled) .mic-core {
@@ -357,8 +430,8 @@ function goToEmergency() {
 }
 
 .mic-area--listening .mic-core {
-  background: #F97316;
-  border-color: #F97316;
+  background: #f97316;
+  border-color: #f97316;
 }
 
 .mic-area--listening .mic-icon {
@@ -366,7 +439,6 @@ function goToEmergency() {
 }
 
 @keyframes ring-pulse {
-
   0%,
   100% {
     border-color: oklch(0.35 0.01 50 / 0.55);
@@ -379,14 +451,24 @@ function goToEmergency() {
   }
 }
 
-/* ─── Error ─── */
+/* ─── Error / hints ─── */
 
 .entry-error {
   margin-top: 0.75rem;
   font-size: 0.8rem;
-  color: #FB923C;
+  color: #fb923c;
   text-align: center;
   max-width: 18rem;
+}
+
+.entry-hint {
+  margin-top: 0.75rem;
+  font-size: 0.85rem;
+  color: #fff;
+  opacity: 0.75;
+  text-align: center;
+  max-width: 20rem;
+  line-height: 1.35;
 }
 
 /* ─── Bottom section ─── */
@@ -406,18 +488,20 @@ function goToEmergency() {
   padding: 1.1rem 1.5rem;
   border-radius: 0.75rem;
   border: none;
-  background: #F97316;
+  background: #f97316;
   color: #fff;
   font-size: 1.1rem;
   font-weight: 700;
   cursor: pointer;
-  transition: background 0.15s, transform 0.1s;
+  transition:
+    background 0.15s,
+    transform 0.1s;
   -webkit-tap-highlight-color: transparent;
   z-index: 2;
 }
 
 .cta-button:hover:not(:disabled) {
-  background: #FB923C;
+  background: #fb923c;
 }
 
 .cta-button:active:not(:disabled) {
@@ -427,6 +511,24 @@ function goToEmergency() {
 .cta-button--disabled {
   opacity: 0.35;
   cursor: not-allowed;
+}
+
+.cancel-listen {
+  width: 100%;
+  padding: 0.65rem;
+  border: none;
+  background: transparent;
+  color: #fff;
+  opacity: 0.55;
+  font-size: 0.95rem;
+  font-weight: 600;
+  text-decoration: underline;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.cancel-listen:hover {
+  opacity: 0.85;
 }
 
 /* Type hint */
@@ -439,7 +541,7 @@ function goToEmergency() {
 .type-link {
   background: none;
   border: none;
-  color: #FB923C;
+  color: #fb923c;
   text-decoration: underline;
   cursor: pointer;
   font-size: inherit;
@@ -475,7 +577,7 @@ function goToEmergency() {
 .consent-checkbox {
   width: 1rem;
   height: 1rem;
-  accent-color: #F97316;
+  accent-color: #f97316;
   cursor: pointer;
   flex-shrink: 0;
 }
