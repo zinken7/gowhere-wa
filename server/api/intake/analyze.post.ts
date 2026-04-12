@@ -7,7 +7,8 @@
  * Consent is required. Emergency keywords bypass everything.
  */
 import { analyzeIntake } from '../../lib/intake-parser'
-import type { IntakeRequest } from '../../../shared/intake-types'
+import { classifyIntakeWithGemini } from '../../lib/intake-gemini'
+import type { IntakeRequest, IntakeResponse } from '../../../shared/intake-types'
 import type { TriageSignals } from '../../../shared/triage-types'
 
 export default defineEventHandler(async (event) => {
@@ -55,7 +56,17 @@ export default defineEventHandler(async (event) => {
   const transcript = body.transcript.trim().slice(0, 2000)
   const priorSignals = (body.priorSignals ?? undefined) as Partial<TriageSignals> | undefined
 
-  const result = analyzeIntake(transcript, priorSignals)
+  const config = useRuntimeConfig(event)
+  const geminiKey = typeof config.geminiApiKey === 'string' ? config.geminiApiKey.trim() : ''
 
-  return result
+  let geminiResult: IntakeResponse | null = null
+  if (geminiKey.length > 0) {
+    geminiResult = await classifyIntakeWithGemini(transcript, priorSignals, geminiKey)
+  }
+
+  if (geminiResult != null) {
+    return geminiResult
+  }
+
+  return analyzeIntake(transcript, priorSignals)
 })

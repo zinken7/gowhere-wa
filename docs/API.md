@@ -32,6 +32,8 @@
 
 **Purpose:** Transform free-form user input (voice transcript or typed text) into structured routing signals. Returns one of three outcomes: emergency escalation, confirmation summary, or follow-up questions.
 
+**Hybrid classifier (Gemini + fallback):** When **`NUXT_GEMINI_API_KEY`** is set (non-empty, server-only), Nitro first asks **Gemini** (`gemini-2.0-flash`) for a **strict JSON** navigation classification (temperature low; not diagnostic). If the key is **unset or empty**, Nitro skips Gemini and uses the keyword parser only. If the key is set but the call **fails** (timeout, HTTP error, invalid JSON, schema mismatch, or mapping error), the handler **silently** falls back to the deterministic **keyword / pattern** parser in `server/lib/intake-parser.ts` (`analyzeIntake`). The HTTP response shape is always the same discriminated union below; clients never receive raw model errors or provider diagnostics.
+
 **Request body:**
 
 | Field | Type | Required | Notes |
