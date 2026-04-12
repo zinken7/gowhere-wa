@@ -30,6 +30,7 @@ defineProps<{
       v-if="showUrgencySafetyLine(result)"
       class="text-sm font-medium text-warning"
     >
+      {{ urgencyLabel(result.urgency) }}
     </p>
   </UCard>
 </template>

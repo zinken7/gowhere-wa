@@ -35,7 +35,10 @@ useHead({
         <p class="font-semibold text-white">
           Example:
         </p>
-        <ul class="list-none space-y-1.5" role="list">
+        <ul
+          class="list-none space-y-1.5"
+          role="list"
+        >
           <li>chest pain</li>
           <li>can't breathe</li>
           <li>heavy bleeding</li>

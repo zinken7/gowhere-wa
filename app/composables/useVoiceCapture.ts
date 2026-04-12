@@ -1,11 +1,14 @@
 /**
  * Browser SpeechRecognition wrapper with text-input fallback.
  *
- * Stop vs cancel:
- * - `stop()` ends recognition and resolves when the session completes (may yield text or empty).
- * - `cancel()` aborts, discards audio, completes with `cancelled` (no forward navigation).
+ * With `interimResults: true`, brief speech + immediate Stop can still succeed:
+ * engines often finalize only after silence; interim text is used as fallback.
  *
- * Do not rely on `onend` alone in the UI — completion is delivered once via `start(onComplete)`.
+ * Stop vs cancel:
+ * - `stop()` → `recognition.stop()`, then after `onend` + grace, submit `final || interim` or empty.
+ * - `cancel()` → `abort()`, discard, `cancelled` (no submission).
+ *
+ * Completion is delivered once via `start(onComplete)` — not from raw `onend` alone.
  */
 
 export type VoiceSessionResult
@@ -14,13 +17,18 @@ export type VoiceSessionResult
     | { kind: 'cancelled' }
     | { kind: 'error', message: string }
 
-/** Time to wait after recognition ends so late `onresult` events can flush (Safari / WebKit). */
-const POST_END_FLUSH_MS = 380
+/** After `onend`, wait for late `onresult` (ordering differs by engine). */
+const POST_END_GRACE_MS = 250
 
 export function useVoiceCapture() {
   const isSupported = ref(false)
   const isListening = ref(false)
+  /** Live line: finals + current interim (for display). */
   const transcript = ref('')
+  /** Accumulated final segments only. */
+  const finalTranscript = ref('')
+  /** Latest non-final hypothesis (cleared when finals advance). */
+  const interimTranscript = ref('')
   const errorMessage = ref('')
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -37,6 +45,19 @@ export function useVoiceCapture() {
       clearTimeout(flushTimer)
       flushTimer = null
     }
+  }
+
+  function syncCombinedTranscript() {
+    transcript.value = (finalTranscript.value + interimTranscript.value).trim()
+  }
+
+  /** Prefer finalized text; else last interim (manual Stop before finalization). */
+  function pickBestTranscript(): string {
+    const fin = finalTranscript.value.trim()
+    if (fin.length > 0) {
+      return fin
+    }
+    return interimTranscript.value.trim()
   }
 
   function deliverOnce(result: VoiceSessionResult) {
@@ -64,18 +85,20 @@ export function useVoiceCapture() {
         return
       }
       if (userCancelled) {
+        finalTranscript.value = ''
+        interimTranscript.value = ''
         transcript.value = ''
         errorMessage.value = ''
         deliverOnce({ kind: 'cancelled' })
         return
       }
-      const text = transcript.value.trim()
+      const text = pickBestTranscript()
       if (text.length > 0) {
         deliverOnce({ kind: 'success', text })
       } else {
         deliverOnce({ kind: 'empty' })
       }
-    }, POST_END_FLUSH_MS)
+    }, POST_END_GRACE_MS)
   }
 
   onMounted(() => {
@@ -86,15 +109,32 @@ export function useVoiceCapture() {
       isSupported.value = true
       recognition = new SpeechRecognitionCtor()
       recognition.lang = 'en-AU'
-      recognition.interimResults = false
+      recognition.interimResults = true
       recognition.continuous = false
       recognition.maxAlternatives = 1
 
-      recognition.onresult = (event: { results: { [index: number]: { transcript: string } }[] }) => {
-        const result = event.results[event.results.length - 1]
-        if (result?.[0]) {
-          transcript.value = result[0].transcript
+      recognition.onresult = (event: {
+        resultIndex: number
+        results: ArrayLike<{ isFinal: boolean, 0?: { transcript: string } }>
+      }) => {
+        if (!sessionActive) {
+          return
         }
+        let interimChunk = ''
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+          const res = event.results[i]
+          if (!res?.[0]) {
+            continue
+          }
+          const piece = res[0].transcript
+          if (res.isFinal) {
+            finalTranscript.value += piece
+          } else {
+            interimChunk += piece
+          }
+        }
+        interimTranscript.value = interimChunk
+        syncCombinedTranscript()
       }
 
       recognition.onerror = (event: { error: string }) => {
@@ -138,6 +178,8 @@ export function useVoiceCapture() {
     userCancelled = false
     completionScheduled = false
     errorMessage.value = ''
+    finalTranscript.value = ''
+    interimTranscript.value = ''
     transcript.value = ''
     sessionActive = true
     onComplete = onDone
@@ -152,7 +194,7 @@ export function useVoiceCapture() {
     }
   }
 
-  /** Finalize recognition — wait for final events; completion via `start` callback. */
+  /** Finalize capture — `onend` + grace reads final vs interim; single delivery via `deliverOnce`. */
   function stop() {
     if (!recognition || !sessionActive) {
       return
@@ -160,7 +202,6 @@ export function useVoiceCapture() {
     try {
       recognition.stop()
     } catch {
-      // Already stopped
       if (sessionActive) {
         isListening.value = false
         scheduleSessionEnd()
@@ -168,7 +209,6 @@ export function useVoiceCapture() {
     }
   }
 
-  /** Discard session — no transcript submission. */
   function cancel() {
     if (!recognition || !sessionActive) {
       return
@@ -181,6 +221,8 @@ export function useVoiceCapture() {
     } catch {
       if (sessionActive) {
         isListening.value = false
+        finalTranscript.value = ''
+        interimTranscript.value = ''
         transcript.value = ''
         errorMessage.value = ''
         deliverOnce({ kind: 'cancelled' })
@@ -189,7 +231,9 @@ export function useVoiceCapture() {
   }
 
   function setManualTranscript(text: string) {
-    transcript.value = text
+    finalTranscript.value = text
+    interimTranscript.value = ''
+    transcript.value = text.trim()
   }
 
   function reset() {
@@ -205,6 +249,8 @@ export function useVoiceCapture() {
     sessionActive = false
     completionScheduled = false
     onComplete = null
+    finalTranscript.value = ''
+    interimTranscript.value = ''
     transcript.value = ''
     errorMessage.value = ''
     isListening.value = false
@@ -222,6 +268,8 @@ export function useVoiceCapture() {
     isSupported,
     isListening,
     transcript,
+    finalTranscript,
+    interimTranscript,
     errorMessage,
     start,
     stop,

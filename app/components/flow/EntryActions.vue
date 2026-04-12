@@ -10,7 +10,6 @@ const emit = defineEmits<{
 const {
   isSupported,
   isListening,
-  transcript,
   errorMessage: voiceError,
   start: startVoice,
   stop: stopVoice,
@@ -112,13 +111,34 @@ function goToEmergency() {
     <!-- ─── Main content (vertically centered) ─── -->
     <div class="entry-center">
       <!-- Brand pin icon — INLINE SVG so fill color works -->
-      <svg class="entry-pin" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 130" aria-label="GoWhere">
+      <svg
+        class="entry-pin"
+        xmlns="http://www.w3.org/2000/svg"
+        viewBox="0 0 100 130"
+        aria-label="GoWhere"
+      >
         <path
           d="M50,0 C77.6,0 100,22.4 100,50 C100,77.6 75,102 56,118 Q50,124 44,118 C25,102 0,77.6 0,50 C0,22.4 22.4,0 50,0 Z"
           fill="#F97316"
         />
-        <rect x="25" y="45" width="50" height="17.5" rx="4" ry="4" fill="#0F0A07" />
-        <rect x="41.5" y="30" width="17.5" height="50" rx="4" ry="4" fill="#0F0A07" />
+        <rect
+          x="25"
+          y="45"
+          width="50"
+          height="17.5"
+          rx="4"
+          ry="4"
+          fill="#0F0A07"
+        />
+        <rect
+          x="41.5"
+          y="30"
+          width="17.5"
+          height="50"
+          rx="4"
+          ry="4"
+          fill="#0F0A07"
+        />
       </svg>
 
       <!-- Headline -->
@@ -159,16 +179,31 @@ function goToEmergency() {
           >
             <path d="M12 19v3" />
             <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
-            <rect x="9" y="2" width="6" height="13" rx="3" fill="#F97316" />
+            <rect
+              x="9"
+              y="2"
+              width="6"
+              height="13"
+              rx="3"
+              fill="#F97316"
+            />
           </svg>
         </span>
       </button>
 
       <!-- Voice error -->
-      <p v-if="voiceError" class="entry-error" role="alert">
+      <p
+        v-if="voiceError"
+        class="entry-error"
+        role="alert"
+      >
         {{ voiceError }}
       </p>
-      <p v-if="emptyCaptureHint" class="entry-hint" role="status">
+      <p
+        v-if="emptyCaptureHint"
+        class="entry-hint"
+        role="status"
+      >
         {{ emptyCaptureHint }}
       </p>
     </div>
@@ -176,8 +211,16 @@ function goToEmergency() {
     <!-- ─── Bottom section ─── -->
     <div class="entry-bottom">
       <!-- Text input fallback -->
-      <div v-if="showTextInput" class="text-fallback">
-        <UTextarea v-model="textInput" placeholder="Describe what you're experiencing…" :rows="3" autoresize />
+      <div
+        v-if="showTextInput"
+        class="text-fallback"
+      >
+        <UTextarea
+          v-model="textInput"
+          placeholder="Describe what you're experiencing…"
+          :rows="3"
+          autoresize
+        />
         <div class="text-fallback-actions">
           <UButton
             block
@@ -188,7 +231,12 @@ function goToEmergency() {
           >
             Analyze
           </UButton>
-          <UButton v-if="isSupported" block variant="outline" @click="switchToVoice">
+          <UButton
+            v-if="isSupported"
+            block
+            variant="outline"
+            @click="switchToVoice"
+          >
             Use voice instead
           </UButton>
         </div>
@@ -224,9 +272,16 @@ function goToEmergency() {
       </button>
 
       <!-- Type-instead link -->
-      <p v-if="!showTextInput && consentGiven && !isListening" class="type-hint">
+      <p
+        v-if="!showTextInput && consentGiven && !isListening"
+        class="type-hint"
+      >
         or
-        <button class="type-link" type="button" @click="switchToText">
+        <button
+          class="type-link"
+          type="button"
+          @click="switchToText"
+        >
           type instead
         </button>
       </p>
@@ -234,7 +289,11 @@ function goToEmergency() {
       <!-- Consent / disclaimer -->
       <div class="entry-consent">
         <label class="consent-label">
-          <input v-model="consentGiven" type="checkbox" class="consent-checkbox">
+          <input
+            v-model="consentGiven"
+            type="checkbox"
+            class="consent-checkbox"
+          >
           <span class="consent-text">
             Not medical advice — does not diagnose conditions.
           </span>
