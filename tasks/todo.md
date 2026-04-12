@@ -151,6 +151,7 @@ Apply in order (last items cut first):
 - [x] **V4** — [Must] `POST /api/intake/analyze` — validates body, requires consent, returns intake response.
   - **Acceptance:** 400 without consent; 200 with discriminated union shape; max 2000 char transcript.
   - **Verify:** manual / curl.
+  - **Update (2026-04):** Hybrid path — tries **Gemini** structured JSON first when `NUXT_GEMINI_API_KEY` is set; on any failure falls back to `analyzeIntake` (keyword parser). Same response contract.
 
 - [x] **V5** — [Must] Intake flow composable (`useIntakeFlow`) — state machine: entry → listening → analyzing → confirm|follow_up → recommendation.
   - **Acceptance:** Emergency path fast; back navigation works; follow-up re-analyzes with combined context.
@@ -186,7 +187,7 @@ Apply in order (last items cut first):
 
 ---
 
-**Status:** Slice 1 **flow UI unblocked**: `pathPrefix: false` in `nuxt.config.ts`. **Voice-first pivot complete (V1–V9)**: voice capture, intake parser, API, flow composable, Entry redesign, confirm/follow-up UI, index.vue rewired. **Open:** V10 intake parser tests; V11 design polish; Phase F ship checks; optional Supabase env + migrations on Vercel for `source: supabase`; **L1** LocationStep if prioritizing geo/suburb UX.
+**Status:** Slice 1 **flow UI unblocked**: `pathPrefix: false` in `nuxt.config.ts`. **Voice-first pivot complete (V1–V9)**: voice capture, intake parser, API, flow composable, Entry redesign, confirm/follow-up UI, index.vue rewired. **Intake analyze** optionally uses Gemini + **silent** fallback to keyword parser (`docs/API.md`). **Open:** V10 intake parser tests; V11 design polish; Phase F ship checks; optional Supabase env + migrations on Vercel for `source: supabase`; **L1** LocationStep if prioritizing geo/suburb UX.
 
 ---
 

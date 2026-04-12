@@ -21,6 +21,8 @@ export default defineNuxtConfig({
 
   css: ['~/assets/css/main.css'],
   runtimeConfig: {
+    /** Server-only — Gemini API key for `POST /api/intake/analyze` hybrid classifier. Maps from `NUXT_GEMINI_API_KEY`. */
+    geminiApiKey: '',
     /** Server-only — never expose to client. Maps from `NUXT_SUPABASE_SERVICE_ROLE_KEY`. */
     supabaseServiceRoleKey: '',
     public: {
