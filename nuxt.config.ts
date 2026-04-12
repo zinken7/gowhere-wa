@@ -23,6 +23,8 @@ export default defineNuxtConfig({
   runtimeConfig: {
     /** Server-only — Gemini API key for `POST /api/intake/analyze` hybrid classifier. Maps from `NUXT_GEMINI_API_KEY`. */
     geminiApiKey: '',
+    /** Server-only — Gemini model id for intake JSON classification. Maps from `NUXT_GEMINI_MODEL`. Default `gemini-2.5-flash`; try `gemini-2.5-flash-lite` for a cheaper tier. */
+    geminiModel: 'gemini-2.5-flash',
     /** Verbose JSON stage logs for intake analyze. Maps from `NUXT_INTAKE_DEBUG_LOGS`. */
     intakeDebugLogs: false,
     /** Server-only — never expose to client. Maps from `NUXT_SUPABASE_SERVICE_ROLE_KEY`. */

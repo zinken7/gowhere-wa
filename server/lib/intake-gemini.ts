@@ -10,9 +10,8 @@ import type { GeminiIntakeClassification } from '../../shared/gemini-intake-type
 import { mapGeminiToIntakeResponse } from './map-gemini-intake'
 import type { IntakeFallbackReason, IntakeLogger } from './intake-logger'
 import { formatErrorForLog } from './intake-logger'
+import { resolveGeminiIntakeModel } from './gemini-intake-model'
 
-/** Exported for intake route logs (model id only; not a secret). */
-export const GEMINI_MODEL = 'gemini-2.0-flash'
 const REQUEST_TIMEOUT_MS = 12_000
 
 const FEW_SHOT_AND_RULES = `
@@ -270,6 +269,7 @@ export async function classifyIntakeWithGemini(
   transcript: string,
   priorSignals: Partial<TriageSignals> | undefined,
   apiKey: string,
+  modelId: string,
   log: IntakeLogger
 ): Promise<GeminiClassifyOutcome> {
   const key = apiKey.trim()
@@ -277,10 +277,12 @@ export async function classifyIntakeWithGemini(
     return { ok: false, reason: 'unknown_failure' }
   }
 
+  const modelName = resolveGeminiIntakeModel(modelId)
+
   const genAI = new GoogleGenerativeAI(key)
   const model = genAI.getGenerativeModel(
     {
-      model: GEMINI_MODEL,
+      model: modelName,
       systemInstruction: {
         role: 'system',
         parts: [{ text: FEW_SHOT_AND_RULES }]
@@ -303,13 +305,13 @@ export async function classifyIntakeWithGemini(
   const userPrompt = `priorSignals (JSON, may be null):\n${priorJson}\n\ntranscript:\n${transcript}`
 
   log.stage('intake_gemini_attempt_starting', {
-    model: GEMINI_MODEL,
+    model: modelName,
     transcriptLength: transcript.length,
     priorSignalsPresent: Boolean(priorSignals && Object.keys(priorSignals).length > 0)
   })
 
   log.stage('intake_gemini_config', {
-    model: GEMINI_MODEL,
+    model: modelName,
     apiKeyPresent: true,
     transcriptLength: transcript.length,
     priorSignalsPresent: Boolean(priorSignals && Object.keys(priorSignals).length > 0)
@@ -324,6 +326,7 @@ export async function classifyIntakeWithGemini(
     const result = await withTimeout(run, REQUEST_TIMEOUT_MS + 2000)
     text = result.response.text()
     log.stage('intake_gemini_request_success', {
+      model: modelName,
       responseTextLength: typeof text === 'string' ? text.length : 0
     })
   } catch (e) {
@@ -332,16 +335,21 @@ export async function classifyIntakeWithGemini(
     const includeStack = Boolean(import.meta.dev)
     const err = formatErrorForLog(e, includeStack)
     log.stage('intake_gemini_request_failed', {
+      model: modelName,
       reason,
       ...err
     })
-    log.logQuietGeminiFailure(reason, { errorName: err.name, errorMessage: err.message })
+    log.logQuietGeminiFailure(reason, {
+      model: modelName,
+      errorName: err.name,
+      errorMessage: err.message
+    })
     return { ok: false, reason, error: err }
   }
 
   if (typeof text !== 'string' || !text.trim()) {
     log.stage('intake_gemini_empty_response', {})
-    log.logQuietGeminiFailure('empty_response_text')
+    log.logQuietGeminiFailure('empty_response_text', { model: modelName })
     return { ok: false, reason: 'empty_response_text' }
   }
 
@@ -355,7 +363,7 @@ export async function classifyIntakeWithGemini(
       ...err,
       responseTextLength: text.length
     })
-    log.logQuietGeminiFailure('invalid_json', { errorName: err.name })
+    log.logQuietGeminiFailure('invalid_json', { model: modelName, errorName: err.name })
     return { ok: false, reason: 'invalid_json', error: err }
   }
 
@@ -364,13 +372,14 @@ export async function classifyIntakeWithGemini(
     log.stage('intake_gemini_schema_validation_failed', {
       parsedKeys: parsed && typeof parsed === 'object' ? Object.keys(parsed as object) : []
     })
-    log.logQuietGeminiFailure('schema_validation_failed')
+    log.logQuietGeminiFailure('schema_validation_failed', { model: modelName })
     return { ok: false, reason: 'schema_validation_failed' }
   }
 
   try {
     const response = mapGeminiToIntakeResponse(validated, priorSignals)
     log.stage('intake_gemini_success', {
+      model: modelName,
       classification: validated.classification,
       suggestedDestination: validated.suggestedDestination,
       responseType: response.type
@@ -385,7 +394,7 @@ export async function classifyIntakeWithGemini(
     const includeStack = Boolean(import.meta.dev)
     const err = formatErrorForLog(e, includeStack)
     log.stage('intake_gemini_mapping_failed', { ...err })
-    log.logQuietGeminiFailure('mapping_failed', { errorName: err.name })
+    log.logQuietGeminiFailure('mapping_failed', { model: modelName, errorName: err.name })
     return { ok: false, reason: 'mapping_failed', error: err }
   }
 }

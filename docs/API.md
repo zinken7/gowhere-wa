@@ -22,9 +22,12 @@
 {
   "ok": true,
   "service": "GoWhere-wa",
-  "time": "2026-04-11T00:00:00.000Z"
+  "time": "2026-04-11T00:00:00.000Z",
+  "geminiIntakeModel": "gemini-2.5-flash"
 }
 ```
+
+- **`geminiIntakeModel`** — Resolved server config for `POST /api/intake/analyze` (`NUXT_GEMINI_MODEL` or default `gemini-2.5-flash`). Non-secret; use to verify deploy env.
 
 ---
 
@@ -32,7 +35,7 @@
 
 **Purpose:** Transform free-form user input (voice transcript or typed text) into structured routing signals. Returns one of three outcomes: emergency escalation, confirmation summary, or follow-up questions.
 
-**Hybrid classifier (Gemini + fallback):** When **`NUXT_GEMINI_API_KEY`** is set (non-empty, server-only), Nitro first asks **Gemini** (`gemini-2.0-flash`) for a **strict JSON** navigation classification (temperature low; not diagnostic). If the key is **unset or empty**, Nitro skips Gemini and uses the keyword parser only. If the key is set but the call **fails** (timeout, HTTP error, invalid JSON, schema mismatch, or mapping error), the handler **silently** falls back to the deterministic **keyword / pattern** parser in `server/lib/intake-parser.ts` (`analyzeIntake`). The HTTP response shape is always the same discriminated union below; clients never receive raw model errors or provider diagnostics.
+**Hybrid classifier (Gemini + fallback):** When **`NUXT_GEMINI_API_KEY`** is set (non-empty, server-only), Nitro first asks **Gemini** for a **strict JSON** navigation classification (default model **`gemini-2.5-flash`**, overridable via **`NUXT_GEMINI_MODEL`** — e.g. `gemini-2.5-flash-lite`). Temperature is low; output is not diagnostic. If the key is **unset or empty**, Nitro skips Gemini and uses the keyword parser only. If the key is set but the call **fails** (timeout, HTTP error, invalid JSON, schema mismatch, or mapping error), the handler **silently** falls back to the deterministic **keyword / pattern** parser in `server/lib/intake-parser.ts` (`analyzeIntake`). The HTTP response shape is always the same discriminated union below; clients never receive raw model errors or provider diagnostics.
 
 **Request body:**
 
@@ -80,7 +83,7 @@
 
 - `400` — invalid body (`INVALID_BODY`), consent not given (`CONSENT_REQUIRED`), or missing transcript (`MISSING_TRANSCRIPT`).
 
-**Server observability (Vercel / Nitro logs):** Each request emits one JSON line with `"event":"intake_request_summary"` (duration, whether Gemini ran, fallback reason, final classification). Optional verbose tracing: set **`INTAKE_DEBUG_LOGS=true`** or **`NUXT_INTAKE_DEBUG_LOGS=true`** or **`NUXT_INTAKE_DEBUG_LOGS`** in runtime config — logs stage events (`intake_request_received`, `intake_gemini_*`, `intake_fallback_*`) without secrets or full transcripts (only length + short preview). Filter logs by `"component":"intake"`.
+**Server observability (Vercel / Nitro logs):** Each request emits one JSON line with `"event":"intake_request_summary"` (`geminiModel`, `geminiAttempted`, `fallbackReason`, `usedGemini`, duration, final classification). Cold starts may log `"event":"gemini_intake_boot"` with the resolved model id. Optional verbose tracing: set **`INTAKE_DEBUG_LOGS=true`** or **`NUXT_INTAKE_DEBUG_LOGS=true`** or **`NUXT_INTAKE_DEBUG_LOGS`** in runtime config — logs stage events (`intake_request_received`, `intake_gemini_*`, `intake_fallback_*`) without secrets or full transcripts (only length + short preview). Filter logs by `"component":"intake"`.
 
 ---
 
