@@ -8,7 +8,8 @@
  */
 import { createError, getRequestHeader } from 'h3'
 import { analyzeIntake } from '../../lib/intake-parser'
-import { classifyIntakeWithGemini, GEMINI_MODEL } from '../../lib/intake-gemini'
+import { classifyIntakeWithGemini } from '../../lib/intake-gemini'
+import { resolveGeminiIntakeModel } from '../../lib/gemini-intake-model'
 import {
   createIntakeLogger,
   resolveIntakeVerbose,
@@ -86,9 +87,12 @@ export default defineEventHandler(async (event) => {
     })
 
     const geminiKey = typeof config.geminiApiKey === 'string' ? config.geminiApiKey.trim() : ''
+    const geminiModel = resolveGeminiIntakeModel(
+      (config as { geminiModel?: string }).geminiModel
+    )
 
     log.stage('intake_gemini_config', {
-      model: GEMINI_MODEL,
+      model: geminiModel,
       apiKeyPresent: geminiKey.length > 0,
       transcriptLength: transcript.length,
       priorSignalsPresent: Boolean(priorSignals && Object.keys(priorSignals).length > 0)
@@ -104,8 +108,10 @@ export default defineEventHandler(async (event) => {
       log.summary({
         outcome: 'ok',
         usedGemini: false,
+        geminiAttempted: false,
         fallbackUsed: true,
         fallbackReason: 'missing_api_key',
+        geminiModel,
         finalClassification: out.type,
         suggestedDestination: null,
         durationMs: durationMs()
@@ -117,6 +123,7 @@ export default defineEventHandler(async (event) => {
       transcript,
       priorSignals,
       geminiKey,
+      geminiModel,
       log
     )
 
@@ -124,8 +131,10 @@ export default defineEventHandler(async (event) => {
       log.summary({
         outcome: 'ok',
         usedGemini: true,
+        geminiAttempted: true,
         fallbackUsed: false,
         fallbackReason: null,
+        geminiModel,
         finalClassification: geminiOutcome.response.type,
         suggestedDestination: geminiOutcome.suggestedDestination,
         durationMs: durationMs()
@@ -143,8 +152,10 @@ export default defineEventHandler(async (event) => {
     log.summary({
       outcome: 'ok',
       usedGemini: false,
+      geminiAttempted: true,
       fallbackUsed: true,
       fallbackReason: geminiOutcome.reason,
+      geminiModel,
       finalClassification: out.type,
       suggestedDestination: null,
       durationMs: durationMs()
