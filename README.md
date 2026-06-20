@@ -1,79 +1,198 @@
-# GoWhere WA (MVP)
+<h1 align="center">GoWhere WA</h1>
 
-Panic-proof **care routing** for Western Australia — deterministic rules, not a diagnosis. Stack: **Nuxt 4**, **Nitro**, **Nuxt UI**, optional **Supabase** for provider data.
+<p align="center">
+  <strong>Panic-proof care routing for Western Australia</strong>
+</p>
 
-## Requirements
+<p align="center">
+  <a href="https://github.com/zinken7/visagio-hackathon/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/zinken7/visagio-hackathon/ci.yml?branch=main&label=ci" alt="CI Status" /></a>
+  &nbsp;
+  <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-blue.svg" alt="MIT License" /></a>
+  &nbsp;
+  <a href="https://nuxt.com"><img src="https://img.shields.io/badge/Framework-Nuxt_4-00DC82?logo=nuxt.js&logoColor=white" alt="Nuxt 4" /></a>
+  &nbsp;
+  <a href="https://supabase.com"><img src="https://img.shields.io/badge/Database-Supabase-3ECF8E?logo=supabase&logoColor=white" alt="Supabase" /></a>
+  &nbsp;
+  <a href="https://vitest.dev"><img src="https://img.shields.io/badge/Testing-Vitest-6E9F18?logo=vitest&logoColor=white" alt="Vitest" /></a>
+</p>
 
-- **Node.js** 22+
-- **pnpm** 10+ (see `packageManager` in `package.json`)
+<p align="center">
+  <sub>GoWhere WA helps users select the correct health care setting (GP, Urgent Care, Pharmacy, or ED) without diagnosing them.</sub>
+</p>
 
-## Quick start
+<p align="center">
+  <sub><a href="#core-principles">Principles</a> · <a href="#features">Features</a> · <a href="#architecture">Architecture</a> · <a href="#data-pipeline">Data Pipeline</a> · <a href="#getting-started">Getting Started</a> · <a href="#environment-variables">Environment</a> · <a href="#testing">Testing</a></sub>
+</p>
 
-```bash
-pnpm install
-pnpm dev
-```
+***
 
-Open [http://localhost:3000](http://localhost:3000). Run checks before pushing:
+## Core Principles
 
-```bash
-pnpm lint && pnpm test && pnpm typecheck && pnpm build
-```
-
-## Environment variables
-
-| Name | Scope | Purpose |
-|------|--------|---------|
-| `NUXT_PUBLIC_SUPABASE_URL` | **Public** (embedded in client; safe) | Supabase project URL (`https://xxx.supabase.co`) |
-| `NUXT_SUPABASE_SERVICE_ROLE_KEY` | **Server-only** (Nitro / API routes; never `NUXT_PUBLIC_*`) | Service role key for `server/lib/supabase.ts` — **never commit** |
-
-Nuxt maps these to `runtimeConfig.public.supabaseUrl` and `runtimeConfig.supabaseServiceRoleKey` (see `nuxt.config.ts`). The service role key is **not** exposed to the browser bundle.
-
-Copy `.env.example` to `.env` locally. For Vercel, add the same names under **Project → Settings → Environment Variables** (enable for **Preview** and/or **Production** as needed).
-
-## Supabase (optional)
-
-1. Create a project (e.g. region **Sydney `ap-southeast-2`** per `docs/SPEC.md` unless you standardise elsewhere).
-2. Run SQL in order: `supabase/migrations/001_providers.sql`, `002_households.sql`.
-3. Seed demo rows: `supabase/seed/providers.sql`.
-
-If URL or service key is missing or the query fails, `GET /api/providers/nearby` returns **`static_fallback`** demo data so the app still works.
-
-## Deploy on Vercel
-
-1. Push this repo to GitHub (or GitLab / Bitbucket) and **Import** it in [Vercel](https://vercel.com).
-2. **Framework preset:** Nuxt (auto-detected) — build command `pnpm build` / output handled by Nitro.
-3. Set **`NUXT_PUBLIC_SUPABASE_URL`** and **`NUXT_SUPABASE_SERVICE_ROLE_KEY`** for the environments you use (at minimum **Preview** for PR previews).
-4. Create a **preview deployment** (open a PR or use **Deployments → Redeploy**).
-
-Do not paste the service role into any `PUBLIC` or client-side variable.
+- **No Diagnosis:** Directs users to appropriate services, not to specific medical conditions.
+- **Deterministic Logic:** Given the same symptoms and context, the recommendation remains identical.
+- **Privacy First:** Explicit consent gates symptom entry. No long-term storage of locations or health data.
+- **Graceful Fallbacks:** Works offline or when external services (Supabase, Gemini) are down.
 
 ---
 
-## Vercel preview verification (checkpoint **A5**)
+## Features
 
-Run these against the **preview URL** Vercel assigns (replace `https://YOUR-PREVIEW.vercel.app`).
+- **Voice/Text Intake:** Users can type or dictate free-form symptoms.
+- **Intelligent Classification:** Converts inputs into structured triage signals via Gemini API, with a local regex backup.
+- **Guided Follow-up:** Asks multi-choice questions if symptom inputs are vague or incomplete.
+- **Clinic Locator:** Sorts nearby clinics using the Haversine formula (distance) or suburb filter.
+- **PWA Ready:** Fully installable mobile and desktop experience.
 
-| # | Check | How |
-|---|--------|-----|
-| 1 | App shell loads | Open `/` — GoWhere layout, no blank page. |
-| 2 | Health | `curl -sS "https://YOUR-PREVIEW.vercel.app/api/health"` → HTTP **200**, JSON with `"ok": true`, `"service": "GoWhere-wa"`. |
-| 3 | Golden path | In browser: consent → persona → category → red flags → severity → **recommendation** with card + list; no dead end. |
-| 4 | Providers with Supabase (env set) | `curl -sS "https://YOUR-PREVIEW.vercel.app/api/providers/nearby?route=gp&suburb=Perth"` → HTTP **200**, JSON `"source": "supabase"` if DB seeded and keys valid; otherwise `"static_fallback"` is acceptable. |
-| 5 | Fallback safe | Temporarily clear **`NUXT_SUPABASE_SERVICE_ROLE_KEY`** on a **test** preview (or use a project without DB): same `curl` → **200** and venues in `items`, `"source": "static_fallback"`. Restore env after. |
+---
 
-**Manual sign-off:** A5 is “done” when rows 1–3 pass on a real preview URL; 4–5 validate Supabase wiring and fallback.
+## Architecture
 
-API contract: `docs/API.md`.
+GoWhere WA is a full-stack Nuxt 4 application deployed on Vercel, utilizing Supabase for provider data persistence.
 
-## Documentation
+```mermaid
+flowchart LR
+  subgraph client [Browser PWA]
+    Pages[index / demo pages]
+    Flow[Flow components + composables]
+  end
+  subgraph nitro [Nitro server]
+    API["/api/* routes"]
+    Engine[triage-engine + utils]
+    Lib[provider-query directions-client supabase]
+  end
+  subgraph supa [Supabase ap-southeast-2]
+    DB[(Postgres RLS)]
+  end
+  subgraph ext [External]
+    Maps[Maps / directions provider optional]
+  end
+  Pages --> Flow
+  Flow --> API
+  API --> Engine
+  API --> Lib
+  Lib --> DB
+  Lib --> Maps
+```
 
-| Doc | Purpose |
-|-----|---------|
-| `docs/SPEC.md` | Product scope and boundaries |
-| `docs/ARCHITECTURE.md` | Runtime and slices |
-| `docs/API.md` | HTTP contracts |
+- **Client App (Nuxt 4 / Vue 3):** Renders interactive forms, maps, and recommendations. Exposes no secrets.
+- **Nitro Server Routes:** Runs classification logic, database queries, and third-party integrations securely.
+- **Database (Supabase):** Stores geographical coords and information for Western Australia clinics.
+- **Triage Engine:** A pure TypeScript module applying deterministic logic tables to symptom signals.
 
-## License
+---
 
-See `LICENSE`.
+## Data Pipeline
+
+The diagram below shows how raw symptom text is transformed into local clinic recommendations:
+
+```mermaid
+flowchart TD
+    Input[User Input] --> Gate{Consent?}
+    Gate -- No --> Exit[Stop]
+    Gate -- Yes --> Parse{Gemini Key?}
+    Parse -- Yes --> Gemini[Gemini Classifier]
+    Parse -- No --> Fallback[Regex Fallback]
+    Gemini -- Fail --> Fallback
+    Fallback --> Check{Complete?}
+    Gemini --> Check
+    Check -- No --> Question[Follow-up Question]
+    Question --> Input
+    Check -- Yes --> Engine[Triage Engine]
+    Engine --> Match[Route Recommendation]
+    Match --> Locate[Provider Search]
+    Locate --> DB{DB Active?}
+    DB -- Yes --> Postgres[Supabase Query]
+    DB -- No --> Static[Static Fallback]
+    Postgres --> Display[Render Clinic List]
+    Static --> Display
+```
+
+### Pipeline Details
+
+1. **Intake Processing (`/api/intake/analyze`):** Parses voice or text transcripts. First tries the Gemini API if `NUXT_GEMINI_API_KEY` is present. Otherwise, triggers a local keyword parser to identify clinical flags.
+2. **Care Recommendation (`/api/triage/recommend`):** Evaluates `TriageSignals` against deterministic rule lists. Red flags (e.g. chest discomfort, severe breathing issues) route directly to ED.
+3. **Provider Selection (`/api/providers/nearby`):** Resolves the target `CareRoute` relative to suburb filters or geolocation coordinates. Queries Supabase using a spatial formula, falling back to static WA clinics if database is unconfigured.
+
+---
+
+## Getting Started
+
+### Prerequisites
+
+- **Node.js** 22+
+- **pnpm** 10+
+
+### Installation
+
+```bash
+# Clone the repository
+git clone https://github.com/zinken7/visagio-hackathon.git
+cd CarePath
+
+# Install dependencies
+pnpm install
+
+# Setup environment configuration
+cp .env.example .env
+
+# Run local development server
+pnpm dev
+```
+
+The application will run locally at `http://localhost:3000`.
+
+---
+
+## Environment Variables
+
+Configure these variables locally in `.env` and on your Vercel hosting settings.
+
+| Name | Type | Scope | Description |
+|------|------|-------|-------------|
+| `NUXT_PUBLIC_SUPABASE_URL` | URL | Public | Your Supabase project URL. |
+| `NUXT_SUPABASE_SERVICE_ROLE_KEY` | String | Server-Only | Database access key. Do not expose to frontend. |
+| `NUXT_GEMINI_API_KEY` | String | Server-Only | (Optional) API key for symptom text classification. |
+| `NUXT_GEMINI_MODEL` | String | Server-Only | (Optional) Model name. Defaults to `gemini-2.5-flash`. |
+| `NUXT_INTAKE_DEBUG_LOGS` | Boolean | Server-Only | (Optional) Set `true` to log non-sensitive intake stages. |
+
+---
+
+## Testing
+
+Ensure code quality commands run clean before pushing changes:
+
+```bash
+pnpm lint       # Run ESLint validation
+pnpm typecheck  # Run TypeScript verification
+pnpm test       # Run Vitest unit tests
+pnpm build      # Run production build compilation
+```
+
+The unit test suite covers:
+- **Triage Logic:** Unit tests in [triage-engine.spec.ts](file:///Users/tyrone/Downloads/CarePath/tests/unit/triage-engine.spec.ts) checking input-to-route rules.
+- **Classifier mapping:** In [map-gemini-intake.spec.ts](file:///Users/tyrone/Downloads/CarePath/tests/unit/map-gemini-intake.spec.ts) validating JSON payloads.
+- **Spatial queries:** In [provider-query.spec.ts](file:///Users/tyrone/Downloads/CarePath/tests/unit/provider-query.spec.ts) confirming Haversine sorting.
+
+---
+
+## Supabase Setup (Optional)
+
+1. Create a project in region **Sydney `ap-southeast-2`**.
+2. Run database migrations:
+   - `supabase/migrations/001_providers.sql`
+   - `supabase/migrations/002_households.sql`
+3. Load sample provider datasets:
+   - `supabase/seed/providers.sql`
+
+---
+
+## Directory Structure
+
+Key directories and files in this repository:
+
+- `app/` - Frontend components, Vue assets, layouts, and pages.
+- `server/` - Nitro server API endpoints and triage processing engines.
+- `shared/` - Common Typescript schemas, interfaces, and variables.
+- `supabase/` - Database SQL migrations and mock seed datasets.
+- `tests/` - Vitest unit tests.
+- `docs/` - Original design, SPEC, and architectural documentation.
